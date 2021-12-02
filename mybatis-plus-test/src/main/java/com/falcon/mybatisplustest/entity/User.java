@@ -1,7 +1,9 @@
 package com.falcon.mybatisplustest.entity;
 
 
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import lombok.Data;
 import lombok.experimental.Accessors;
 
@@ -16,6 +18,7 @@ import lombok.experimental.Accessors;
 @Data
 @Accessors(chain = true)
 public class User {
+    @TableId(type =IdType.ASSIGN_ID)
     private Long id;
     /**
      * 租户 ID

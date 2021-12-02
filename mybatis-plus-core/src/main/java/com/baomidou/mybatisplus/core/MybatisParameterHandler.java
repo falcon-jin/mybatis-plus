@@ -114,8 +114,10 @@ public class MybatisParameterHandler implements ParameterHandler {
             final IdentifierGenerator identifierGenerator = GlobalConfigUtils.getGlobalConfig(this.configuration).getIdentifierGenerator();
             Object idValue = metaObject.getValue(keyProperty);
             if (StringUtils.checkValNull(idValue)) {
+                //判断主建生成方式
                 if (idType.getKey() == IdType.ASSIGN_ID.getKey()) {
                     Class<?> keyType = tableInfo.getKeyType();
+                    //主键是数字类型
                     if (Number.class.isAssignableFrom(keyType)) {
                         Number id = identifierGenerator.nextId(entity);
                         if (keyType == id.getClass()) {

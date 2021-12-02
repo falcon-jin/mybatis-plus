@@ -72,8 +72,6 @@ public class MybatisPlusProperties {
     private ExecutorType executorType;
 
     /**
-     * The default scripting language driver class. (Available when use together with mybatis-spring 2.0.2+)
-     * <p>
      * 如果设置了这个,你会至少失去几乎所有 mp 提供的功能
      */
     private Class<? extends LanguageDriver> defaultScriptingLanguageDriver;
@@ -84,8 +82,7 @@ public class MybatisPlusProperties {
     private Properties configurationProperties;
 
     /**
-     * A Configuration object for customize default settings. If {@link #configLocation}
-     * is specified, this property is not used.
+     用于自定义默认设置的 Configuration 对象。 如果指定了configLocation ，则不使用此属性。 TODO 使用 MybatisConfiguration
      * TODO 使用 MybatisConfiguration
      */
     @NestedConfigurationProperty

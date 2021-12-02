@@ -20,6 +20,7 @@ class MybatisPlusTestApplicationTests {
         queryWrapper.lambda().eq(User::getId,1);
         List<User> users = userMapper.selectList(queryWrapper);
         System.out.println(users);
+        userMapper.insert(new User());
     }
 
 }
