@@ -16,7 +16,9 @@ class MybatisPlusTestApplicationTests {
 
     @Test
     void contextLoads() {
-        List<User> users = userMapper.selectList(new QueryWrapper<>());
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.lambda().eq(User::getId,1);
+        List<User> users = userMapper.selectList(queryWrapper);
         System.out.println(users);
     }
 
