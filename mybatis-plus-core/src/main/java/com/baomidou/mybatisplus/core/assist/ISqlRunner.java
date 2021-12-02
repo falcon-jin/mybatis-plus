@@ -14,7 +14,9 @@ import java.util.Map;
  * @since 2018/2/7
  */
 public interface ISqlRunner {
-
+    /**
+     *  MappedStatement名称 设置本类包名就行
+     */
     String INSERT = "com.baomidou.mybatisplus.core.mapper.SqlRunner.Insert";
     String DELETE = "com.baomidou.mybatisplus.core.mapper.SqlRunner.Delete";
     String UPDATE = "com.baomidou.mybatisplus.core.mapper.SqlRunner.Update";
