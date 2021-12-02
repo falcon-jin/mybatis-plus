@@ -64,7 +64,7 @@ Mybatis 增强工具包 - 只做增强不做改变，简化`CRUD`操作
 
 ``` xml
 <dependency>
-    <groupId>com.baomidou</groupId>
+     <groupId>com.falcon</groupId>
     <artifactId>mybatis-plus</artifactId>
     <version>Latest Version</version>
 </dependency>
