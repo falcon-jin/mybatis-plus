@@ -27,6 +27,7 @@ public class LambdaQueryChainWrapper<T> extends AbstractChainWrapper<T, SFunctio
         super.wrapperChildren = new LambdaQueryWrapper<>();
     }
 
+    // @SafeVarargs 表示是一个安全的类型检查
     @SafeVarargs
     @Override
     public final LambdaQueryChainWrapper<T> select(SFunction<T, ?>... columns) {

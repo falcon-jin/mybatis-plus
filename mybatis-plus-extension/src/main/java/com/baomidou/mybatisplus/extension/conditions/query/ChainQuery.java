@@ -10,7 +10,7 @@ import java.util.Optional;
 
 /**
  * 具有查询方法的定义
- *
+ * 链式查询
  * @author miemie
  * @since 2018-12-19
  */

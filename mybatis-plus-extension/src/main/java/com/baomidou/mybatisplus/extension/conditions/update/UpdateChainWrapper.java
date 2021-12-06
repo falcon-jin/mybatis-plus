@@ -8,7 +8,7 @@ import com.baomidou.mybatisplus.core.toolkit.ExceptionUtils;
 import com.baomidou.mybatisplus.extension.conditions.AbstractChainWrapper;
 
 /**
- * Update Chain Wrapper
+ * 更新链包装器
  *
  * @author miemie
  * @since 2018-12-19

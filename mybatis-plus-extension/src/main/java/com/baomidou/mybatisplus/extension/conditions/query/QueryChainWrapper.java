@@ -11,8 +11,10 @@ import com.baomidou.mybatisplus.extension.conditions.AbstractChainWrapper;
 import java.util.function.Predicate;
 
 /**
- * Query Chain Wrapper
- *
+ * 查询链包装器
+ * 使用
+ * List<HouseEntity> list2=new QueryChainWrapper<>(houseMapper)
+ *                 .orderByDesc("house_area").list();
  * @author miemie
  * @since 2018-12-19
  */

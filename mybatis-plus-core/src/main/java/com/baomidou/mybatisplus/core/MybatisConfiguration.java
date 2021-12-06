@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.function.BiFunction;
 
 /**
- * replace default Configuration class
+ * 替换默认配置类
  * <p>Caratacus 2016/9/25 replace mapperRegistry</p>
  *
  * @author hubin

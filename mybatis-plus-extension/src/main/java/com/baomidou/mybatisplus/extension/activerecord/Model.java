@@ -21,7 +21,8 @@ import java.util.Objects;
 /**
  * ActiveRecord 模式 CRUD
  * <p>
- * 必须存在对应的原始mapper并继承baseMapper并且可以使用的前提下
+ * 1、实体类继承Model
+ * 2、必须存在对应的原始mapper并继承baseMapper并且可以使用的前提下
  * 才能使用此 AR 模式 !!!
  * </p>
  *

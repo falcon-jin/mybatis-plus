@@ -9,7 +9,7 @@ import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
 import com.baomidou.mybatisplus.extension.conditions.AbstractChainWrapper;
 
 /**
- * Lambda Update Chain Wrapper
+ * Lambda 更新链包装器
  *
  * @author miemie
  * @since 2018-12-19

@@ -5,7 +5,7 @@
     <artifactId>mybatis-plus-extension</artifactId>
       <version>1.0</version>
     <name>mybatis-plus-extension</name>
-    <description>An enhanced toolkit of Mybatis to simplify development.</description>
+    <description>Mybatis 简化开发的增强工具包</description>
 
     <dependencies>
         <dependency>
