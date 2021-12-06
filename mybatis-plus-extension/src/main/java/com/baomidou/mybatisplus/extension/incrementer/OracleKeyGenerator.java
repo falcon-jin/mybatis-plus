@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.incrementer.IKeyGenerator;
 
 /**
- * Oracle Key Sequence 生成器
- *
+ * Oracle 序列 生成器
+ * 主键自增
  * @author hubin
  * @since 2017-05-08
  */

@@ -42,6 +42,13 @@ public class AlwaysUpdateSomeColumnById extends AbstractMethod {
     @Accessors(chain = true)
     private Predicate<TableFieldInfo> predicate;
 
+    /**
+     * 注入映射语句
+     * @param mapperClass mapper 接口
+     * @param modelClass  mapper 泛型
+     * @param tableInfo   数据库表反射信息
+     * @return
+     */
     @Override
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
         SqlMethod sqlMethod = SqlMethod.UPDATE_BY_ID;

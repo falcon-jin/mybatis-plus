@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.incrementer.IKeyGenerator;
 
 /**
- * Kingbase Sequence
- *
+ * Kingbase 序列
+ * 主键自增
  * @author kingbase
  * @since 2019-10-17
  */

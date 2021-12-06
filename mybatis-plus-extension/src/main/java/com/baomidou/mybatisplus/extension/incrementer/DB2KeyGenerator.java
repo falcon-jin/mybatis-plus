@@ -5,7 +5,7 @@ import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.incrementer.IKeyGenerator;
 
 /**
- * DB2 Sequence
+ * DB2 序列
  *
  * @author Caratacus
  * @since 2017-06-12

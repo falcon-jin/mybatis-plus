@@ -5,8 +5,8 @@ import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.incrementer.IKeyGenerator;
 
 /**
- * H2 Sequence
- *
+ * H2 序列
+ * 主键自增
  * @author Caratacus
  * @since 2017-06-12
  */
