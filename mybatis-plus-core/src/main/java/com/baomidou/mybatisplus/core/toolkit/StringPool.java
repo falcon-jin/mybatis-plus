@@ -20,7 +20,7 @@ package com.baomidou.mybatisplus.core.toolkit;
  * </ul>
  */
 public interface StringPool {
-
+    String EMPTY_JSON 		= "{}";
     String AMPERSAND = "&";
     String AND = "and";
     String AT = "@";

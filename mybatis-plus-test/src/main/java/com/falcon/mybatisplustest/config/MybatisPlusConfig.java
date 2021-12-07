@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer;
 import com.baomidou.mybatisplus.extension.MybatisMapWrapperFactory;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
+import com.baomidou.mybatisplus.extension.plugins.inner.SqlLogInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
 import net.sf.jsqlparser.expression.Expression;
 import net.sf.jsqlparser.expression.LongValue;
@@ -52,6 +53,7 @@ public class MybatisPlusConfig {
         return configuration -> {
             //开启返回map结果集的下划线转驼峰
             configuration.setObjectWrapperFactory(new MybatisMapWrapperFactory());
+            configuration.addInterceptor(new SqlLogInterceptor());
         };
     }
 }

@@ -1,20 +1,19 @@
 package com.falcon.mybatisplustest;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.extension.activerecord.Model;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.QueryChainWrapper;
 import com.baomidou.mybatisplus.extension.conditions.update.UpdateChainWrapper;
 import com.falcon.mybatisplustest.entity.User;
 import com.falcon.mybatisplustest.mapper.UserMapper;
+import org.apache.ibatis.session.SqlSession;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
-import java.util.Map;
+import java.util.function.Consumer;
 
 @SpringBootTest
 class MybatisPlusTestApplicationTests {
@@ -43,22 +42,27 @@ class MybatisPlusTestApplicationTests {
         List<User> list = new ArrayList<>();
         User e = new User();
 
-        e.setTenantId(12L);
         e.setName("123");
-        e.setAddrName("123");
 
         list.add(e);
         User e1 = new User();
 
-        e1.setTenantId(0L);
         e1.setName("12323");
-        e1.setAddrName("123123");
 
         list.add(e1);
         int i = userMapper.insertBatch(list);
         System.out.println(1);
 
     }
+    @Test
+    void testSelect() {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.lambda().eq(User::getId,1).eq(User::getEmail,"123");
+        List<User> users = userMapper.selectList(queryWrapper);
+
+    }
+
+
 
 
 
