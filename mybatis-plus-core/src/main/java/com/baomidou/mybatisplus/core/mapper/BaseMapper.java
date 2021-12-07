@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import com.baomidou.mybatisplus.core.injector.methods.InsertBatch;
 import org.apache.ibatis.annotations.Param;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
@@ -78,6 +79,12 @@ public interface BaseMapper<T> extends Mapper<T> {
      */
     int insert(T entity);
 
+    /**
+     * 批量插入
+     * @param batchList 实体对象集合
+     * @return
+     */
+    int insertBatch(@Param("list") Collection<T> batchList);
     /**
      * 根据 ID 删除
      *

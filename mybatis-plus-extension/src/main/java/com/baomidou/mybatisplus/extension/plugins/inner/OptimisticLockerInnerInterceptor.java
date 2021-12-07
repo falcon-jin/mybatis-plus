@@ -22,7 +22,7 @@ import java.util.Date;
 import java.util.Map;
 
 /**
- * Optimistic Lock Light version
+ * 乐观锁光版
  * <p>Intercept on {@link Executor}.update;</p>
  * <p>Support version types: int/Integer, long/Long, java.util.Date, java.sql.Timestamp</p>
  * <p>For extra types, please define a subclass and override {@code getUpdatedVersionVal}() method.</p>

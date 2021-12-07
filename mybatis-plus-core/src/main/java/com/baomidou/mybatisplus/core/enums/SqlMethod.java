@@ -8,6 +8,7 @@ package com.baomidou.mybatisplus.core.enums;
  * @since 2016-01-23
  */
 public enum SqlMethod {
+    INSERT_BATCH("insertBatch", "插入一条数据（选择字段插入）", "<script>\nINSERT INTO %s %s VALUES %s\n</script>"),
     /**
      * 插入
      */

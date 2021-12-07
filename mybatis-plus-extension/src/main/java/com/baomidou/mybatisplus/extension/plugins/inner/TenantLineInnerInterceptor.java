@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Properties;
 
 /**
+ * 多租户拦截器
  * @author hubin
  * @since 3.4.0
  */

@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.util.*;
 
 /**
+ * 拦截器
  * @author miemie
  * @since 3.4.0
  */
@@ -48,6 +49,7 @@ public class MybatisPlusInterceptor implements Interceptor {
             boolean isUpdate = args.length == 2;
             MappedStatement ms = (MappedStatement) args[0];
             if (!isUpdate && ms.getSqlCommandType() == SqlCommandType.SELECT) {
+                //拦截查询操作
                 RowBounds rowBounds = (RowBounds) args[2];
                 ResultHandler resultHandler = (ResultHandler) args[3];
                 BoundSql boundSql;
@@ -57,6 +59,7 @@ public class MybatisPlusInterceptor implements Interceptor {
                     // 几乎不可能走进这里面,除非使用Executor的代理对象调用query[args[6]]
                     boundSql = (BoundSql) args[5];
                 }
+                //执行拦截器
                 for (InnerInterceptor query : interceptors) {
                     if (!query.willDoQuery(executor, ms, parameter, rowBounds, resultHandler, boundSql)) {
                         return Collections.emptyList();
@@ -66,6 +69,7 @@ public class MybatisPlusInterceptor implements Interceptor {
                 CacheKey cacheKey = executor.createCacheKey(ms, parameter, rowBounds, boundSql);
                 return executor.query(ms, parameter, rowBounds, resultHandler, cacheKey, boundSql);
             } else if (isUpdate) {
+                //更新操作拦截
                 for (InnerInterceptor update : interceptors) {
                     if (!update.willDoUpdate(executor, ms, parameter)) {
                         return -1;

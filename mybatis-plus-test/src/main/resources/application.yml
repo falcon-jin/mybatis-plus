@@ -11,6 +11,12 @@ spring:
 mybatis-plus:
     configuration:
         log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+    global-config:
+        db-config:
+            id-type: assign_id
+
+
+
 
 # Logger Config
 logging:

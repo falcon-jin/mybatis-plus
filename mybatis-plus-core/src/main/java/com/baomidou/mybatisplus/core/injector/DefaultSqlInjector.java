@@ -22,6 +22,7 @@ public class DefaultSqlInjector extends AbstractSqlInjector {
     public List<AbstractMethod> getMethodList(Class<?> mapperClass, TableInfo tableInfo) {
         if (tableInfo.havePK()) {
             return Stream.of(
+                new InsertBatch(),
                 new Insert(),
                 new Delete(),
                 new DeleteByMap(),
@@ -43,6 +44,7 @@ public class DefaultSqlInjector extends AbstractSqlInjector {
             logger.warn(String.format("%s ,Not found @TableId annotation, Cannot use Mybatis-Plus 'xxById' Method.",
                 tableInfo.getEntityType()));
             return Stream.of(
+                new InsertBatch(),
                 new Insert(),
                 new Delete(),
                 new DeleteByMap(),

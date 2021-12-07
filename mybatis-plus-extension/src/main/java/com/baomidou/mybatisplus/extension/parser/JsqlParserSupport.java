@@ -16,6 +16,7 @@ import org.apache.ibatis.logging.LogFactory;
 
 /**
  * https://github.com/JSQLParser/JSqlParser
+ * sql解析器
  *
  * @author miemie
  * @since 2020-06-22
