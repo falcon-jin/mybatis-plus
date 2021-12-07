@@ -136,7 +136,7 @@ public class SqlLogInterceptor implements Interceptor {
         MappedStatement ms = (MappedStatement) metaObject.getValue("delegate.mappedStatement");
         // 打印 sql
         System.err.println(
-                StringUtils.format(
+                format(
                         "\n==============  Sql Start  ==============" +
                                 "\nExecute ID  ：{}" +
                                 "\nExecute SQL ：{}" +
@@ -209,4 +209,82 @@ public class SqlLogInterceptor implements Interceptor {
         return list.get(0);
     }
 
+    private String format(final String strPattern, final Object... argArray) {
+        if (Objects.isNull(argArray)||argArray.length==0) {
+            return strPattern;
+        }
+        final int strPatternLength = strPattern.length();
+
+        /**
+         * 初始化定义好的长度以获得更好的性能
+         */
+        StringBuilder sbuf = new StringBuilder(strPatternLength + 50);
+
+        /**
+         * 记录已经处理到的位置
+         */
+        int handledPosition = 0;
+
+        /**
+         * 占位符所在位置
+         */
+        int delimIndex;
+        for (int argIndex = 0; argIndex < argArray.length; argIndex++) {
+            delimIndex = strPattern.indexOf(StringPool.EMPTY_JSON, handledPosition);
+            /**
+             * 剩余部分无占位符
+             */
+            if (delimIndex == -1) {
+                /**
+                 * 不带占位符的模板直接返回
+                 */
+                if (handledPosition == 0) {
+                    return strPattern;
+                } else {
+                    sbuf.append(strPattern, handledPosition, strPatternLength);
+                    return sbuf.toString();
+                }
+            } else {
+                /**
+                 * 转义符
+                 */
+                if (delimIndex > 0 && toStr(strPattern.charAt(delimIndex - 1)).equals(StringPool.BACK_SLASH)) {
+                    /**
+                     * 双转义符
+                     */
+                    if (delimIndex > 1 &&toStr(strPattern.charAt(delimIndex - 2)).equals(StringPool.BACK_SLASH)) {
+                        //转义符之前还有一个转义符，占位符依旧有效
+                        sbuf.append(strPattern, handledPosition, delimIndex - 1);
+                        sbuf.append(toStr(argArray[argIndex]));
+                        handledPosition = delimIndex + 2;
+                    } else {
+                        //占位符被转义
+                        argIndex--;
+                        sbuf.append(strPattern, handledPosition, delimIndex - 1);
+                        sbuf.append(StringPool.LEFT_BRACE);
+                        handledPosition = delimIndex + 1;
+                    }
+                } else {//正常占位符
+                    sbuf.append(strPattern, handledPosition, delimIndex);
+                    sbuf.append(toStr(argArray[argIndex]));
+                    handledPosition = delimIndex + 2;
+                }
+            }
+        }
+        // append the characters following the last {} pair.
+        //加入最后一个占位符后所有的字符
+        sbuf.append(strPattern, handledPosition, strPattern.length());
+
+        return sbuf.toString();
+    }
+
+    private  String toStr(Object o) {
+        return toStr(o,"");
+    }
+    private  String toStr(Object str, String defaultValue) {
+        if (null == str) {
+            return defaultValue;
+        }
+        return String.valueOf(str);
+    }
 }
