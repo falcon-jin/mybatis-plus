@@ -1,214 +1,60 @@
 package com.baomidou.mybatisplus.extension.plugins.inner;
 
 
-import com.baomidou.mybatisplus.core.toolkit.*;
+import com.baomidou.mybatisplus.core.toolkit.StringPool;
+import com.baomidou.mybatisplus.core.toolkit.SystemClock;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.executor.statement.StatementHandler;
+import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
+import org.apache.ibatis.mapping.ParameterMapping;
 import org.apache.ibatis.plugin.*;
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.reflection.SystemMetaObject;
-import org.apache.ibatis.session.ResultHandler;
+import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.type.TypeHandlerRegistry;
 
-import java.lang.reflect.Method;
-import java.lang.reflect.Proxy;
-import java.sql.Statement;
-import java.util.*;
+
+import java.sql.Connection;
+import java.text.DateFormat;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+import java.util.Objects;
 
 /**
  * 用于输出每条 SQL 语句及其执行时间
- *
- * @author hubin nieqiurong TaoYu
- * @since 2016-07-07
  */
 @Slf4j
-@Intercepts({
-        @Signature(type = StatementHandler.class, method = "query", args = {Statement.class, ResultHandler.class}),
-        @Signature(type = StatementHandler.class, method = "update", args = Statement.class),
-        @Signature(type = StatementHandler.class, method = "batch", args = Statement.class)
-})
+@Intercepts(
+    {
+        @Signature(type = StatementHandler.class, method = "prepare", args = {Connection.class, Integer.class}),
+    }
+)
 public class SqlLogInterceptor implements Interceptor {
-    private static final String DRUID_POOLED_PREPARED_STATEMENT = "com.alibaba.druid.pool.DruidPooledPreparedStatement";
-    private static final String T4C_PREPARED_STATEMENT = "oracle.jdbc.driver.T4CPreparedStatement";
-    private static final String ORACLE_PREPARED_STATEMENT_WRAPPER = "oracle.jdbc.driver.OraclePreparedStatementWrapper";
-
-    private Method oracleGetOriginalSqlMethod;
-    private Method druidGetSqlMethod;
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
-        Statement statement;
-        Object firstArg = invocation.getArgs()[0];
-        String originalSql = null;
-        List value = null;
-        if (Proxy.isProxyClass(firstArg.getClass())) {
-            MetaObject metaObject = SystemMetaObject.forObject(firstArg);
-
-            value =(List) metaObject.getValue("h.columnValues");
-            statement = (Statement) metaObject.getValue("h.statement");
-        } else {
-            statement = (Statement) firstArg;
-        }
-        MetaObject stmtMetaObj = SystemMetaObject.forObject(statement);
         try {
-            statement = (Statement) stmtMetaObj.getValue("stmt.statement");
+            Object target = invocation.getTarget();
+            if (target instanceof StatementHandler) {
+
+                MetaObject metaObject = SystemMetaObject.forObject(target);
+                MappedStatement ms = (MappedStatement) metaObject.getValue("delegate.mappedStatement");
+                BoundSql boundSql = ((StatementHandler) target).getBoundSql();
+                String sql = showSql(ms.getConfiguration(), boundSql, 1L, ms.getId());
+                long start = SystemClock.now();
+                Object result = invocation.proceed();
+                long timing = SystemClock.now() - start;
+                System.err.println(this.format("\n==============  Sql Start  ==============\nExecute ID  ：{}\nExecute SQL ：{}\nExecute Time：{} ms\n==============  Sql  End   ==============\n", "", sql, timing));
+                return result;
+            }
         } catch (Exception e) {
-            // do nothing
+            e.printStackTrace();
         }
-        if (stmtMetaObj.hasGetter("delegate")) {
-            //Hikari
-            try {
-                statement = (Statement) stmtMetaObj.getValue("delegate");
-                MetaObject metaObject = SystemMetaObject.forObject(statement);
-                if(metaObject.hasGetter("sqlStatement")){
-                    String sqlStatement = (String) metaObject.getValue("sqlStatement");
-                    originalSql = format(sqlStatement,value);
-                }
-            } catch (Exception ignored) {
-
-            }
-        }
-
-        if (originalSql == null) {
-            String stmtClassName = statement.getClass().getName();
-            //mysql驱动
-            if(stmtClassName.contains("mysql")){
-                originalSql = statement.toString();
-            }else if (DRUID_POOLED_PREPARED_STATEMENT.equals(stmtClassName)) {
-                //druid
-                try {
-                    if (druidGetSqlMethod == null) {
-                        Class<?> clazz = Class.forName(DRUID_POOLED_PREPARED_STATEMENT);
-                        druidGetSqlMethod = clazz.getMethod("getSql");
-                    }
-                    Object stmtSql = druidGetSqlMethod.invoke(statement);
-                    if (stmtSql instanceof String) {
-                        originalSql = (String) stmtSql;
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            } else if (T4C_PREPARED_STATEMENT.equals(stmtClassName)
-                || ORACLE_PREPARED_STATEMENT_WRAPPER.equals(stmtClassName)) {
-                try {
-                    if (oracleGetOriginalSqlMethod != null) {
-                        Object stmtSql = oracleGetOriginalSqlMethod.invoke(statement);
-                        if (stmtSql instanceof String) {
-                            originalSql = (String) stmtSql;
-                        }
-                    } else {
-                        Class<?> clazz = Class.forName(stmtClassName);
-                        oracleGetOriginalSqlMethod = getMethodRegular(clazz, "getOriginalSql");
-                        if (oracleGetOriginalSqlMethod != null) {
-                            //OraclePreparedStatementWrapper is not a public class, need set this.
-                            oracleGetOriginalSqlMethod.setAccessible(true);
-                            if (null != oracleGetOriginalSqlMethod) {
-                                Object stmtSql = oracleGetOriginalSqlMethod.invoke(statement);
-                                if (stmtSql instanceof String) {
-                                    originalSql = (String) stmtSql;
-                                }
-                            }
-                        }
-                    }
-                } catch (Exception e) {
-                    //ignore
-                }
-            }
-        }
-
-        if (originalSql == null) {
-            originalSql = statement.toString();
-        }
-        originalSql = originalSql.replaceAll("[\\s]+", StringPool.SPACE);
-        int index = indexOfSqlStart(originalSql);
-        if (index > 0) {
-            originalSql = originalSql.substring(index);
-        }
-
-        // 计算执行 SQL 耗时
-        long start = SystemClock.now();
-        Object result = invocation.proceed();
-        long timing = SystemClock.now() - start;
-
-        // SQL 打印执行结果
-        Object target = PluginUtils.realTarget(invocation.getTarget());
-        MetaObject metaObject = SystemMetaObject.forObject(target);
-        MappedStatement ms = (MappedStatement) metaObject.getValue("delegate.mappedStatement");
-        // 打印 sql
-        System.err.println(
-                format(
-                        "\n==============  Sql Start  ==============" +
-                                "\nExecute ID  ：{}" +
-                                "\nExecute SQL ：{}" +
-                                "\nExecute Time：{} ms" +
-                                "\n==============  Sql  End   ==============\n",
-                        ms.getId(), originalSql, timing));
-        return result;
+        return invocation.proceed();
     }
-
-    private String format(String sqlStatement, List value) {
-        String[] split = sqlStatement.split("\\?");
-        StringBuilder sb = new StringBuilder(split[0]);
-        for (int i = 0; i < value.size(); i++) {
-            Object o = value.get(i);
-           if(o instanceof String){
-               sb.append("'").append(o).append("'").append(split[i+1]);
-           }else {
-               sb.append(o).append(split[i+1]);
-           }
-        }
-        return sb.toString();
-    }
-
-    @Override
-    public Object plugin(Object target) {
-        if (target instanceof StatementHandler) {
-            return Plugin.wrap(target, this);
-        }
-        return target;
-    }
-
-    /**
-     * 获取此方法名的具体 Method
-     *
-     * @param clazz      class 对象
-     * @param methodName 方法名
-     * @return 方法
-     */
-    private Method getMethodRegular(Class<?> clazz, String methodName) {
-        if (Object.class.equals(clazz)) {
-            return null;
-        }
-        for (Method method : clazz.getDeclaredMethods()) {
-            if (method.getName().equals(methodName)) {
-                return method;
-            }
-        }
-        return getMethodRegular(clazz.getSuperclass(), methodName);
-    }
-
-    /**
-     * 获取sql语句开头部分
-     *
-     * @param sql ignore
-     * @return ignore
-     */
-    private int indexOfSqlStart(String sql) {
-        String upperCaseSql = sql.toUpperCase();
-        Set<Integer> set = new HashSet<>();
-        set.add(upperCaseSql.indexOf("SELECT "));
-        set.add(upperCaseSql.indexOf("UPDATE "));
-        set.add(upperCaseSql.indexOf("INSERT "));
-        set.add(upperCaseSql.indexOf("DELETE "));
-        set.remove(-1);
-        if (CollectionUtils.isEmpty(set)) {
-            return -1;
-        }
-        List<Integer> list = new ArrayList<>(set);
-        list.sort(Comparator.naturalOrder());
-        return list.get(0);
-    }
-
     private String format(final String strPattern, final Object... argArray) {
         if (Objects.isNull(argArray)||argArray.length==0) {
             return strPattern;
@@ -230,7 +76,7 @@ public class SqlLogInterceptor implements Interceptor {
          */
         int delimIndex;
         for (int argIndex = 0; argIndex < argArray.length; argIndex++) {
-            delimIndex = strPattern.indexOf(StringPool.EMPTY_JSON, handledPosition);
+            delimIndex = strPattern.indexOf("{}", handledPosition);
             /**
              * 剩余部分无占位符
              */
@@ -277,7 +123,80 @@ public class SqlLogInterceptor implements Interceptor {
 
         return sbuf.toString();
     }
+    @Override
+    public Object plugin(Object target) {
+        if (target instanceof Executor || target instanceof StatementHandler) {
+            return Plugin.wrap(target, this);
+        }
+        return target;
+    }
 
+    private  String showSql(Configuration configuration, BoundSql boundSql, long time, String sqlId){
+        Object parameterObject = boundSql.getParameterObject();
+
+        List parameterMappings = boundSql.getParameterMappings();
+
+//替换空格、换行、tab缩进等
+
+        String sql = boundSql.getSql().replaceAll("[\\s]+", " ");
+
+        if (parameterMappings.size() > 0 && parameterObject != null) {
+            TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
+
+            if (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) {
+                sql = sql.replaceFirst("\\?", getParameterValue(parameterObject));
+
+            } else {
+                MetaObject metaObject = configuration.newMetaObject(parameterObject);
+
+                for (Object parameterMapping : parameterMappings) {
+                    String propertyName = ((ParameterMapping)parameterMapping).getProperty();
+
+                    if (metaObject.hasGetter(propertyName)) {
+                        Object obj = metaObject.getValue(propertyName);
+
+                        sql = sql.replaceFirst("\\?", getParameterValue(obj));
+
+                    } else if (boundSql.hasAdditionalParameter(propertyName)) {
+                        Object obj = boundSql.getAdditionalParameter(propertyName);
+
+                        sql = sql.replaceFirst("\\?", getParameterValue(obj));
+
+                    }
+
+                }
+
+            }
+
+        }
+        return sql;
+
+    }
+    private  String getParameterValue(Object obj){
+        String value;
+
+        if (obj instanceof String) {
+            value = "'" + obj.toString() + "'";
+
+        } else if (obj instanceof Date) {
+            DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
+
+            value = "'" + formatter.format(new Date()) + "'";
+
+        } else {
+            if (obj != null) {
+                value = obj.toString();
+
+            } else {
+                value = null;
+
+            }
+
+        }
+
+        return value.replace("$", "\\$");
+
+    }
     private  String toStr(Object o) {
         return toStr(o,"");
     }
@@ -287,4 +206,5 @@ public class SqlLogInterceptor implements Interceptor {
         }
         return String.valueOf(str);
     }
+
 }
