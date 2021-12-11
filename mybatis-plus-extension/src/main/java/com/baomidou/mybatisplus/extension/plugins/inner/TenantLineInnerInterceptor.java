@@ -222,8 +222,11 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
         processWhereSubSelect(where);
         if (fromItem instanceof Table) {
             Table fromTable = (Table) fromItem;
-            if (!tenantLineHandler.ignoreTable(fromTable.getName())) {
-                //#1186 github
+            //处理别名 比如 gdep_mdm_size gms 只取 gdep_mdm_size
+            String name = fromTable.getName();
+            String[] s = name.split(" ");
+            if (!tenantLineHandler.ignoreTable(s[0])) {
+                //拼接where条件
                 plainSelect.setWhere(builderExpression(where, fromTable));
             }
         } else {
@@ -237,7 +240,21 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
         List<Join> joins = plainSelect.getJoins();
         if (CollectionUtils.isNotEmpty(joins)) {
             joins.forEach(j -> {
-                processJoin(j);
+                if(processJoin(j)){
+                    Expression where1 = plainSelect.getWhere();
+                    FromItem rightItem = j.getRightItem();
+                    if (rightItem instanceof Table) {
+                        Table fromTable = (Table) rightItem;
+                        //处理别名 比如 gdep_mdm_size gms 只取 gdep_mdm_size
+                        String name = fromTable.getName();
+                        String[] s = name.split(" ");
+                        if (!tenantLineHandler.ignoreTable(s[0])) {
+                            //拼接where条件
+                            plainSelect.setWhere(builderExpression(where1, fromTable));
+                        }
+                    }
+
+                }
                 processFromItem(j.getRightItem());
             });
         }
@@ -364,15 +381,19 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
     /**
      * 处理联接语句
      */
-    protected void processJoin(Join join) {
+    protected Boolean processJoin(Join join) {
         if (join.getRightItem() instanceof Table) {
             Table fromTable = (Table) join.getRightItem();
             if (tenantLineHandler.ignoreTable(fromTable.getName())) {
                 // 过滤退出执行
-                return;
+                return false;
             }
-            join.setOnExpression(builderExpression(join.getOnExpression(), fromTable));
+            join.addOnExpression(builderExpression(join.getOnExpression(), fromTable));
+            if(join.isSimple()){
+                return true;
+            }
         }
+        return false;
     }
 
     /**
@@ -403,6 +424,8 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
         StringBuilder column = new StringBuilder();
         if (table.getAlias() != null) {
             column.append(table.getAlias().getName()).append(StringPool.DOT);
+        }else {
+            column.append(table.getName()).append(StringPool.DOT);
         }
         column.append(tenantLineHandler.getTenantIdColumn());
         return new Column(column.toString());
