@@ -34,6 +34,7 @@ import java.util.Objects;
 )
 public class SqlLogInterceptor implements Interceptor {
 
+
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
         try {
@@ -47,7 +48,7 @@ public class SqlLogInterceptor implements Interceptor {
                 long start = SystemClock.now();
                 Object result = invocation.proceed();
                 long timing = SystemClock.now() - start;
-                System.err.println(this.format("\n==============  Sql Start  ==============\nExecute ID  ：{}\nExecute SQL ：{}\nExecute Time：{} ms\n==============  Sql  End   ==============\n", "", sql, timing));
+                System.err.println(this.format("\n==============  Sql Start  ==============\nExecute ID  ：{}\nExecute SQL ：{}\nExecute Time：{} ms\n==============  Sql  End   ==============\n", ms.getId(), sql, timing));
                 return result;
             }
         } catch (Exception e) {
@@ -188,7 +189,7 @@ public class SqlLogInterceptor implements Interceptor {
                 value = obj.toString();
 
             } else {
-                value = null;
+                value = "null";
 
             }
 
