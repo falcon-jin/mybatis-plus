@@ -12,6 +12,7 @@ import java.util.List;
  * @since 2021-05-20
  */
 public class PageDTO<T> extends Page<T> {
+    private static final long serialVersionUID = 1L;
 
     public PageDTO() {
     }
@@ -50,6 +51,10 @@ public class PageDTO<T> extends Page<T> {
     @Override
     public boolean isOptimizeCountSql() {
         return this.optimizeCountSql;
+    }
+
+    public boolean isOptimizeJoinOfCountSql() {
+        return this.optimizeJoinOfCountSql;
     }
 
     @Override

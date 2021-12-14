@@ -3,6 +3,7 @@ package com.baomidou.mybatisplus.core.toolkit;
 
 import java.lang.reflect.Array;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.Map;
 
 /**
@@ -58,6 +59,12 @@ public class ObjectUtils {
         }
         if (obj instanceof Map) {
             return ((Map<?, ?>) obj).isEmpty();
+        }
+        if (obj instanceof Iterable) {
+            return !((Iterable<?>) obj).iterator().hasNext();
+        }
+        if (obj instanceof Iterator) {
+            return !((Iterator<?>) obj).hasNext();
         }
         // else
         return false;

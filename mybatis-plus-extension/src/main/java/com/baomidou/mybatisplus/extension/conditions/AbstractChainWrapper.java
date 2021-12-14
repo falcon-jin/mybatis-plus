@@ -210,7 +210,6 @@ public abstract class AbstractChainWrapper<T, R, Children extends AbstractChainW
         return typedThis;
     }
 
-    @Deprecated
     @Override
     public Children groupBy(boolean condition, R column, R... columns) {
         getWrapper().groupBy(condition, column, columns);
@@ -229,7 +228,6 @@ public abstract class AbstractChainWrapper<T, R, Children extends AbstractChainW
         return typedThis;
     }
 
-    @Deprecated
     @Override
     public Children orderBy(boolean condition, boolean isAsc, R column, R... columns) {
         getWrapper().orderBy(condition, isAsc, column, columns);

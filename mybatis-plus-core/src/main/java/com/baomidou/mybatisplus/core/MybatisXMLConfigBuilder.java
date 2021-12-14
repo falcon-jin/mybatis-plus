@@ -1,6 +1,7 @@
 
 package com.baomidou.mybatisplus.core;
 
+import com.baomidou.mybatisplus.core.toolkit.StringPool;
 import org.apache.ibatis.builder.BaseBuilder;
 import org.apache.ibatis.builder.BuilderException;
 import org.apache.ibatis.builder.xml.XMLConfigBuilder;
@@ -128,7 +129,7 @@ public class MybatisXMLConfigBuilder extends BaseBuilder {
     private void loadCustomVfs(Properties props) throws ClassNotFoundException {
         String value = props.getProperty("vfsImpl");
         if (value != null) {
-            String[] clazzes = value.split(",");
+            String[] clazzes = value.split(StringPool.COMMA);
             for (String clazz : clazzes) {
                 if (!clazz.isEmpty()) {
                     @SuppressWarnings("unchecked")

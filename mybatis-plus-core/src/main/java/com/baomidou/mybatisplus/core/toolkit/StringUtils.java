@@ -25,10 +25,6 @@ import static java.util.stream.Collectors.joining;
 public final class StringUtils {
 
     /**
-     * 空字符
-     */
-    public static final String EMPTY = StringPool.EMPTY;
-    /**
      * 字符串 is
      */
     public static final String IS = "is";
@@ -144,7 +140,7 @@ public final class StringUtils {
      */
     public static String camelToUnderline(String param) {
         if (isBlank(param)) {
-            return EMPTY;
+            return StringPool.EMPTY;
         }
         int len = param.length();
         StringBuilder sb = new StringBuilder(len);
@@ -166,7 +162,7 @@ public final class StringUtils {
      */
     public static String underlineToCamel(String param) {
         if (isBlank(param)) {
-            return EMPTY;
+            return StringPool.EMPTY;
         }
         String temp = param.toLowerCase();
         int len = temp.length();
@@ -192,7 +188,7 @@ public final class StringUtils {
      */
     public static String firstToLowerCase(String param) {
         if (isBlank(param)) {
-            return EMPTY;
+            return StringPool.EMPTY;
         }
         return param.substring(0, 1).toLowerCase() + param.substring(1);
     }
@@ -303,7 +299,7 @@ public final class StringUtils {
      */
     public static String concatCapitalize(String concatStr, final String str) {
         if (isBlank(concatStr)) {
-            concatStr = EMPTY;
+            concatStr = StringPool.EMPTY;
         }
         if (str == null || str.length() == 0) {
             return str;
@@ -490,10 +486,10 @@ public final class StringUtils {
             if (lastOneIsNotUnderscore && (isUpperCaseAndPreviousIsLowerCase || previousIsWhitespace)) {
                 buf.append(StringPool.UNDERSCORE);
             } else if ((Character.isDigit(previousChar) && Character.isLetter(c))) {
-                buf.append('_');
+                buf.append(UNDERLINE);
             }
             if ((shouldReplace(c)) && (lastOneIsNotUnderscore)) {
-                buf.append('_');
+                buf.append(UNDERLINE);
             } else if (!Character.isWhitespace(c) && (isNotUnderscore || lastOneIsNotUnderscore)) {
                 buf.append(Character.toUpperCase(c));
             }
@@ -519,9 +515,9 @@ public final class StringUtils {
                 buf.append(StringPool.DASH);
             }
             if ('_' == c) {
-                buf.append('-');
+                buf.append(StringPool.DASH);
             } else if ('.' == c) {
-                buf.append('-');
+                buf.append(StringPool.DASH);
             } else if (!Character.isWhitespace(c)) {
                 buf.append(Character.toLowerCase(c));
             }
