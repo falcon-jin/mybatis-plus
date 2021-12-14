@@ -243,24 +243,7 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
         }
         List<Join> joins = plainSelect.getJoins();
         if (CollectionUtils.isNotEmpty(joins)) {
-            joins.forEach(j -> {
-                if(processJoin(j)){
-                    Expression where1 = plainSelect.getWhere();
-                    FromItem rightItem = j.getRightItem();
-                    if (rightItem instanceof Table) {
-                        Table fromTable = (Table) rightItem;
-                        //处理别名 比如 gdep_mdm_size gms 只取 gdep_mdm_size
-                        String name = fromTable.getName();
-                        String[] s = name.split(" ");
-                        if (!tenantLineHandler.ignoreTable(s[0])) {
-                            //拼接where条件
-                            plainSelect.setWhere(builderExpression(where1, fromTable));
-                        }
-                    }
-
-                }
-                processFromItem(j.getRightItem());
-            });
+            processJoins(joins);
         }
     }
 
@@ -402,8 +385,11 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
                     processJoin(join);
                     continue;
                 }
+                //处理别名 比如 gdep_mdm_size gms 只取 gdep_mdm_size
+                String name = fromTable.getName();
+                String[] s = name.split(" ");
                 // 当前表是否忽略
-                boolean needIgnore = tenantLineHandler.ignoreTable(fromTable.getName());
+                boolean needIgnore = tenantLineHandler.ignoreTable(s[0]);
                 // 表名压栈，忽略的表压入 null，以便后续不处理
                 tables.push(needIgnore ? null : fromTable);
                 // 尾缀多个 on 表达式的时候统一处理
