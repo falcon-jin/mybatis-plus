@@ -157,7 +157,7 @@ class TenantLineInnerInterceptorTest {
     }
 
     @Test
-    void selectBodySubSelect(){
+    void selectBodySubSelect() {
         assertSql("select t1.col1,(select t2.col2 from t2 t2 where t1.col1=t2.col1) from t1 t1",
             "SELECT t1.col1, (SELECT t2.col2 FROM t2 t2 WHERE t1.col1 = t2.col1 AND t2.tenant_id = 1) FROM t1 t1 WHERE t1.tenant_id = 1");
     }
@@ -178,6 +178,49 @@ class TenantLineInnerInterceptorTest {
             "SELECT * FROM entity e " +
                 "LEFT JOIN entity1 e1 ON e1.id = e.id AND e1.tenant_id = 1 " +
                 "WHERE (e.id = ? OR e.name = ?) AND e.tenant_id = 1");
+    }
+
+    @Test
+    void selectRightJoin() {
+        // right join
+        assertSql("SELECT * FROM entity e " +
+                "right join entity1 e1 on e1.id = e.id",
+            "SELECT * FROM entity e " +
+                "RIGHT JOIN entity1 e1 ON e1.id = e.id AND e1.tenant_id = 1 " +
+                "WHERE e.tenant_id = 1");
+
+        assertSql("SELECT * FROM entity e " +
+                "right join entity1 e1 on e1.id = e.id " +
+                "WHERE e.id = ? OR e.name = ?",
+            "SELECT * FROM entity e " +
+                "RIGHT JOIN entity1 e1 ON e1.id = e.id AND e1.tenant_id = 1 " +
+                "WHERE (e.id = ? OR e.name = ?) AND e.tenant_id = 1");
+    }
+
+    @Test
+    void selectLeftJoinMultipleTrailingOn() {
+        // 多个 on 尾缀的
+        assertSql("SELECT * FROM entity e " +
+                "LEFT JOIN entity1 e1 " +
+                "LEFT JOIN entity2 e2 ON e2.id = e1.id " +
+                "ON e1.id = e.id " +
+                "WHERE (e.id = ? OR e.NAME = ?)",
+            "SELECT * FROM entity e " +
+                "LEFT JOIN entity1 e1 " +
+                "LEFT JOIN entity2 e2 ON e2.id = e1.id AND e2.tenant_id = 1 " +
+                "ON e1.id = e.id AND e1.tenant_id = 1 " +
+                "WHERE (e.id = ? OR e.NAME = ?) AND e.tenant_id = 1");
+
+        assertSql("SELECT * FROM entity e " +
+                "LEFT JOIN entity1 e1 " +
+                "LEFT JOIN with_as_A e2 ON e2.id = e1.id " +
+                "ON e1.id = e.id " +
+                "WHERE (e.id = ? OR e.NAME = ?)",
+            "SELECT * FROM entity e " +
+                "LEFT JOIN entity1 e1 " +
+                "LEFT JOIN with_as_A e2 ON e2.id = e1.id " +
+                "ON e1.id = e.id AND e1.tenant_id = 1 " +
+                "WHERE (e.id = ? OR e.NAME = ?) AND e.tenant_id = 1");
     }
 
     @Test
@@ -204,6 +247,7 @@ class TenantLineInnerInterceptorTest {
 //                "INNER JOIN entity1 e1 ON e1.id = e.id AND e1.tenant_id = 1 " +
 //                "WHERE (e.id = ? OR e.name = ?) AND e.tenant_id = 1");
     }
+
 
     @Test
     void selectWithAs() {
