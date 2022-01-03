@@ -15,6 +15,18 @@ import org.apache.ibatis.mapping.SqlSource;
  */
 public class SelectCount extends AbstractMethod {
 
+    public SelectCount() {
+        super(SqlMethod.SELECT_COUNT.getMethod());
+    }
+
+    /**
+     * @param name 方法名
+     * @since 3.5.0
+     */
+    public SelectCount(String name) {
+        super(name);
+    }
+
     @Override
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
         SqlMethod sqlMethod = SqlMethod.SELECT_COUNT;

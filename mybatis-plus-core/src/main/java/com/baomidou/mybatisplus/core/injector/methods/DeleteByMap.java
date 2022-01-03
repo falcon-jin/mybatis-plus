@@ -17,6 +17,18 @@ import java.util.Map;
  */
 public class DeleteByMap extends AbstractMethod {
 
+    public DeleteByMap() {
+        super("deleteByMap");
+    }
+
+    /**
+     * @param name 方法名
+     * @since 3.5.0
+     */
+    public DeleteByMap(String name) {
+        super(name);
+    }
+
     @Override
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
         String sql;

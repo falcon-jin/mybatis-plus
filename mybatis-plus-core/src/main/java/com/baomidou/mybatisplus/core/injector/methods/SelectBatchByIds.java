@@ -16,13 +16,25 @@ import org.apache.ibatis.mapping.SqlSource;
  */
 public class SelectBatchByIds extends AbstractMethod {
 
+    public SelectBatchByIds() {
+        super(SqlMethod.SELECT_BATCH_BY_IDS.getMethod());
+    }
+
+    /**
+     * @param name 方法名
+     * @since 3.5.0
+     */
+    public SelectBatchByIds(String name) {
+        super(name);
+    }
+
     @Override
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
         SqlMethod sqlMethod = SqlMethod.SELECT_BATCH_BY_IDS;
         SqlSource sqlSource = languageDriver.createSqlSource(configuration, String.format(sqlMethod.getSql(),
                 sqlSelectColumns(tableInfo, false), tableInfo.getTableName(), tableInfo.getKeyColumn(),
                 SqlScriptUtils.convertForeach("#{item}", COLLECTION, null, "item", COMMA),
-                tableInfo.getLogicDeleteSql(true, true)), tableInfo.getKeyType());
+                tableInfo.getLogicDeleteSql(true, true)), Object.class);
         return addSelectMappedStatementForTable(mapperClass, getMethod(sqlMethod), sqlSource, tableInfo);
     }
 }

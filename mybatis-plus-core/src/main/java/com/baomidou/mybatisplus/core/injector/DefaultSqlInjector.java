@@ -42,19 +42,6 @@ public class DefaultSqlInjector extends AbstractSqlInjector {
         } else {
             logger.warn(String.format("%s ,Not found @TableId annotation, Cannot use Mybatis-Plus 'xxById' Method.",
                 tableInfo.getEntityType()));
-            return Stream.of(
-                new Insert(),
-                new Delete(),
-                new DeleteByMap(),
-                new Update(),
-                new SelectByMap(),
-                new SelectCount(),
-                new SelectMaps(),
-                new SelectMapsPage(),
-                new SelectObjs(),
-                new SelectList(),
-                new SelectPage()
-            ).collect(toList());
         }
         return builder.build().collect(toList());
     }

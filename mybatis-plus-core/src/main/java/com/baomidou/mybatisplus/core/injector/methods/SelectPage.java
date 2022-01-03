@@ -15,6 +15,18 @@ import org.apache.ibatis.mapping.SqlSource;
  */
 public class SelectPage extends AbstractMethod {
 
+    public SelectPage() {
+        super(SqlMethod.SELECT_PAGE.getMethod());
+    }
+
+    /**
+     * @since 3.5.0
+     * @param name 方法名
+     */
+    public SelectPage(String name) {
+        super(name);
+    }
+
     @Override
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
         SqlMethod sqlMethod = SqlMethod.SELECT_PAGE;

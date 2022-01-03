@@ -96,6 +96,7 @@ public class TableFieldInfo implements Constants {
     /**
      * 是否是逻辑删除字段
      */
+    @Getter
     private boolean logicDelete = false;
     /**
      * 逻辑删除值

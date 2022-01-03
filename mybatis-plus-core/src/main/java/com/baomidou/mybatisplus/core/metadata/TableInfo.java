@@ -16,6 +16,7 @@ import org.apache.ibatis.mapping.ResultMapping;
 import org.apache.ibatis.reflection.Reflector;
 import org.apache.ibatis.session.Configuration;
 
+import java.lang.reflect.Constructor;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
@@ -281,13 +282,14 @@ public class TableInfo implements Constants {
     public String getKeyInsertSqlProperty(final boolean batch, final String prefix, final boolean newLine) {
         final String newPrefix = prefix == null ? EMPTY : prefix;
         if (havePK()) {
-            String keyColumn = SqlScriptUtils.safeParam(newPrefix + keyProperty) + COMMA;
+            final String prefixKeyProperty = newPrefix + keyProperty;
+            String keyColumn = SqlScriptUtils.safeParam(prefixKeyProperty) + COMMA;
             if (idType == IdType.AUTO) {
                 if (batch) {
                     // 批量插入必须返回空自增情况下
                     return EMPTY;
                 }
-                return SqlScriptUtils.convertIf(keyColumn, String.format("%s != null", keyProperty), newLine);
+                return SqlScriptUtils.convertIf(keyColumn, String.format("%s != null", prefixKeyProperty), newLine);
             }
             return keyColumn + (newLine ? NEWLINE : EMPTY);
         }
@@ -528,6 +530,26 @@ public class TableInfo implements Constants {
             this.reflector.getSetInvoker(property).invoke(entity, values);
         } catch (ReflectiveOperationException e) {
             throw ExceptionUtils.mpe("Error: Cannot write property in %s.  Cause:", e, entity.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * 创建实例
+     *
+     * @param <T> 泛型
+     * @return 初始化实例
+     * @since 3.5.0
+     */
+    @SuppressWarnings("unchecked")
+    public <T> T newInstance() {
+        Constructor<?> defaultConstructor = reflector.getDefaultConstructor();
+        if (!defaultConstructor.isAccessible()) {
+            defaultConstructor.setAccessible(true);
+        }
+        try {
+            return (T) defaultConstructor.newInstance();
+        } catch (ReflectiveOperationException e) {
+            throw ExceptionUtils.mpe(e);
         }
     }
 

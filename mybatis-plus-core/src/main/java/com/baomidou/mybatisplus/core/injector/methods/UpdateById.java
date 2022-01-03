@@ -15,6 +15,18 @@ import org.apache.ibatis.mapping.SqlSource;
  */
 public class UpdateById extends AbstractMethod {
 
+    public UpdateById() {
+        super(SqlMethod.UPDATE_BY_ID.getMethod());
+    }
+
+    /**
+     * @since 3.5.0
+     * @param name 方法名
+     */
+    public UpdateById(String name) {
+        super(name);
+    }
+
     @Override
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
         SqlMethod sqlMethod = SqlMethod.UPDATE_BY_ID;

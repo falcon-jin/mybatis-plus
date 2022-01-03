@@ -23,6 +23,18 @@ import static java.util.stream.Collectors.toList;
  */
 public class DeleteById extends AbstractMethod {
 
+    public DeleteById() {
+        super("deleteById");
+    }
+
+    /**
+     * @param name 方法名
+     * @since 3.5.0
+     */
+    public DeleteById(String name) {
+        super(name);
+    }
+
     @Override
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
         String sql;
@@ -30,6 +42,7 @@ public class DeleteById extends AbstractMethod {
         if (tableInfo.isWithLogicDelete()) {
             List<TableFieldInfo> fieldInfos = tableInfo.getFieldList().stream()
                 .filter(TableFieldInfo::isWithUpdateFill)
+                .filter(f -> !f.isLogicDelete())
                 .collect(toList());
             if (CollectionUtils.isNotEmpty(fieldInfos)) {
                 String sqlSet = "SET " + SqlScriptUtils.convertIf(fieldInfos.stream()
@@ -42,13 +55,13 @@ public class DeleteById extends AbstractMethod {
                     tableInfo.getKeyColumn(), tableInfo.getKeyProperty(),
                     tableInfo.getLogicDeleteSql(true, true));
             }
-            SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, tableInfo.getKeyType());
+            SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, Object.class);
             return addUpdateMappedStatement(mapperClass, modelClass, getMethod(sqlMethod), sqlSource);
         } else {
             sqlMethod = SqlMethod.DELETE_BY_ID;
             sql = String.format(sqlMethod.getSql(), tableInfo.getTableName(), tableInfo.getKeyColumn(),
                 tableInfo.getKeyProperty());
-            SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, tableInfo.getKeyType());
+            SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, Object.class);
             return this.addDeleteMappedStatement(mapperClass, getMethod(sqlMethod), sqlSource);
         }
     }

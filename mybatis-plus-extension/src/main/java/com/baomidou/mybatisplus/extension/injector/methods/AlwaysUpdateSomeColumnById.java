@@ -6,8 +6,6 @@ import com.baomidou.mybatisplus.core.injector.AbstractMethod;
 import com.baomidou.mybatisplus.core.metadata.TableFieldInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
-import lombok.AllArgsConstructor;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.Accessors;
 import org.apache.ibatis.mapping.MappedStatement;
@@ -30,8 +28,6 @@ import java.util.function.Predicate;
  * @author hubin
  * @since 2019-04-12
  */
-@NoArgsConstructor
-@AllArgsConstructor
 @SuppressWarnings("serial")
 public class AlwaysUpdateSomeColumnById extends AbstractMethod {
 
@@ -42,6 +38,27 @@ public class AlwaysUpdateSomeColumnById extends AbstractMethod {
     @Accessors(chain = true)
     private Predicate<TableFieldInfo> predicate;
 
+    /**
+     * @param name      方法名
+     * @param predicate 筛选条件
+     * @since 3.5.0
+     */
+    public AlwaysUpdateSomeColumnById(String name, Predicate<TableFieldInfo> predicate) {
+        super(name);
+        this.predicate = predicate;
+    }
+
+    public AlwaysUpdateSomeColumnById() {
+        super("alwaysUpdateSomeColumnById");
+    }
+
+    /**
+     * @param predicate 筛选条件
+     */
+    public AlwaysUpdateSomeColumnById(Predicate<TableFieldInfo> predicate) {
+        super("alwaysUpdateSomeColumnById");
+        this.predicate = predicate;
+    }
     /**
      * 注入映射语句
      * @param mapperClass mapper 接口
@@ -70,9 +87,4 @@ public class AlwaysUpdateSomeColumnById extends AbstractMethod {
         return noLogic;
     }
 
-    @Override
-    public String getMethod(SqlMethod sqlMethod) {
-        // 自定义 mapper 方法名
-        return "alwaysUpdateSomeColumnById";
-    }
 }

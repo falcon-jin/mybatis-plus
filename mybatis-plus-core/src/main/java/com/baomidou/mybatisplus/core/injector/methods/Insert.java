@@ -20,8 +20,19 @@ import org.apache.ibatis.mapping.SqlSource;
  * @author hubin
  * @since 2018-04-06
  */
-@SuppressWarnings("serial")
 public class Insert extends AbstractMethod {
+
+    public Insert() {
+        super(SqlMethod.INSERT_ONE.getMethod());
+    }
+
+    /**
+     * @param name 方法名
+     * @since 3.5.0
+     */
+    public Insert(String name) {
+        super(name);
+    }
 
     @Override
     public MappedStatement injectMappedStatement(Class<?> mapperClass, Class<?> modelClass, TableInfo tableInfo) {
@@ -42,7 +53,7 @@ public class Insert extends AbstractMethod {
                 keyColumn = tableInfo.getKeyColumn();
             } else {
                 if (null != tableInfo.getKeySequence()) {
-                    keyGenerator = TableInfoHelper.genKeyGenerator(getMethod(sqlMethod), tableInfo, builderAssistant);
+                    keyGenerator = TableInfoHelper.genKeyGenerator(this.methodName, tableInfo, builderAssistant);
                     keyProperty = tableInfo.getKeyProperty();
                     keyColumn = tableInfo.getKeyColumn();
                 }

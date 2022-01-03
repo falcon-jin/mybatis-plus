@@ -178,6 +178,9 @@ public class MybatisParameterHandler implements ParameterHandler {
             Map parameterMap = (Map) parameterObject;
             if (parameterMap.containsKey("collection")) {
                 parameters = (Collection) parameterMap.get("collection");
+            } if (parameterMap.containsKey(Constants.COLLECTION)) {
+                // 兼容逻辑删除对象填充
+                parameters = (Collection) parameterMap.get(Constants.COLLECTION);
             } else if (parameterMap.containsKey("list")) {
                 parameters = (List) parameterMap.get("list");
             } else if (parameterMap.containsKey("array")) {
