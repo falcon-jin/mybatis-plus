@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2021, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -111,6 +111,8 @@ public class JdbcUtils {
             return DbType.GOLDILOCKS;
         } else if (url.contains(":csiidb:")) {
             return DbType.CSIIDB;
+        } else if (url.contains(":sap:")) {
+            return DbType.SAP_HANA;
         } else {
             logger.warn("The jdbcUrl is " + jdbcUrl + ", Mybatis Plus Cannot Read Database type or The Database's Not Supported!");
             return DbType.OTHER;

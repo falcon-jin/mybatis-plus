@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2021, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -180,7 +180,7 @@ public final class SqlHelper {
         }
         try {
             consumer.accept(sqlSession);
-            //非事物情况下，强制commit。
+            //非事务情况下，强制commit。
             sqlSession.commit(!transaction);
             return true;
         } catch (Throwable t) {

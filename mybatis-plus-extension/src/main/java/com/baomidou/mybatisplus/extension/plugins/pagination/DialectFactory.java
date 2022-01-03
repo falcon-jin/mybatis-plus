@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2021, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -62,7 +62,8 @@ public class DialectFactory {
                 || dbType == DbType.SQLITE
                 || dbType == DbType.HSQL
                 || dbType == DbType.KINGBASE_ES
-                || dbType == DbType.PHOENIX) {
+                || dbType == DbType.PHOENIX
+                || dbType == DbType.SAP_HANA) {
                 dialect = new PostgreDialect();
             } else if (dbType == DbType.HIGH_GO) {
                 dialect = new HighGoDialect();

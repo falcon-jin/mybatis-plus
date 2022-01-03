@@ -13,24 +13,26 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.baomidou.mybatisplus.extension.plugins.handler;
+package com.baomidou.mybatisplus.extension.incrementer;
 
-import net.sf.jsqlparser.expression.Expression;
+import com.baomidou.mybatisplus.annotation.DbType;
+import com.baomidou.mybatisplus.core.incrementer.IKeyGenerator;
 
 /**
- * 数据权限处理器
+ * SAP_HANA Key Sequence 生成器
  *
- * @author hubin
- * @since 3.4.1 +
+ * @author zhangchg
+ * @since 2021-12-03
  */
-public interface DataPermissionHandler {
+public class SapHanaKeyGenerator implements IKeyGenerator {
 
-    /**
-     * 获取数据权限 SQL 片段
-     *
-     * @param where             待执行 SQL Where 条件表达式
-     * @param mappedStatementId Mybatis MappedStatement Id 根据该参数可以判断具体执行方法
-     * @return JSqlParser 条件表达式
-     */
-    Expression getSqlSegment(Expression where, String mappedStatementId);
+    @Override
+    public String executeSql(String incrementerName) {
+        return "SELECT " + incrementerName + ".NEXTVAL FROM DUMMY";
+    }
+
+    @Override
+    public DbType dbType() {
+        return DbType.SAP_HANA;
+    }
 }
