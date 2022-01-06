@@ -58,7 +58,7 @@ class MybatisPlusTestApplicationTests {
     void testSelect() {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.lambda().eq(User::getId,1).eq(User::getEmail,"123");
-        List<User> users = userMapper.selectList(queryWrapper);
+        User users = userMapper.selectOne(queryWrapper);
 
     }
 

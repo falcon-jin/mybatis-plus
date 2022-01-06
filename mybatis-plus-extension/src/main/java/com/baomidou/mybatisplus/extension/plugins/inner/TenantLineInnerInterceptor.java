@@ -519,7 +519,11 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
         Expression tenantId = tenantLineHandler.getTenantId();
         // 构造每张表的条件
         List<EqualsTo> equalsTos = tables.stream()
-            .filter(x -> !tenantLineHandler.ignoreTable(x.getName()))
+            .filter(x -> {
+                String name = x.getName();
+                String[] fromTableNames = name.split(" ");
+                return !tenantLineHandler.ignoreTable(fromTableNames[0]);
+            })
             .map(item -> new EqualsTo(getAliasColumn(item), tenantId))
             .collect(Collectors.toList());
 
