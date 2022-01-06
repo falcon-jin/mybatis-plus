@@ -27,14 +27,7 @@ import org.apache.ibatis.session.RowBounds;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Deque;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -93,9 +86,9 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
             processSelectBody(withItem.getSubSelect().getSelectBody());
         } else {
             SetOperationList operationList = (SetOperationList) selectBody;
-            List<SelectBody> selectBodys = operationList.getSelects();
-            if (CollectionUtils.isNotEmpty(selectBodys)) {
-                selectBodys.forEach(this::processSelectBody);
+            List<SelectBody> selectBodyList = operationList.getSelects();
+            if (CollectionUtils.isNotEmpty(selectBodyList)) {
+                selectBodyList.forEach(this::processSelectBody);
             }
         }
     }
@@ -267,12 +260,7 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
         // 无 join 时的处理逻辑
         if (fromItem instanceof Table) {
             Table fromTable = (Table) fromItem;
-            //处理别名 比如 gdep_mdm_size gms 只取 gdep_mdm_size
-            String name = fromTable.getName();
-            String[] fromTableNames = name.split(" ");
-            if (!tenantLineHandler.ignoreTable(fromTableNames[0])) {
-                mainTables.add(fromTable);
-            }
+            mainTables.add(fromTable);
         } else if (fromItem instanceof SubJoin) {
             // SubJoin 类型则还需要添加上 where 条件
             List<Table> tables = processSubJoin((SubJoin) fromItem);
@@ -387,7 +375,7 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
                 processSelectBody(subSelect.getSelectBody());
             }
         } else if (fromItem instanceof ValuesList) {
-            logger.debug("Perform a subquery, if you do not give us feedback");
+            logger.debug("Perform a subQuery, if you do not give us feedback");
         } else if (fromItem instanceof LateralSubSelect) {
             LateralSubSelect lateralSubSelect = (LateralSubSelect) fromItem;
             if (lateralSubSelect.getSubSelect() != null) {
@@ -423,15 +411,14 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
      * @return List<Table> 右连接查询的 Table 列表
      */
     private List<Table> processJoins(List<Table> mainTables, List<Join> joins) {
-        if (mainTables == null) {
-            mainTables = new ArrayList<>();
-        }
-
         // join 表达式中最终的主表
         Table mainTable = null;
         // 当前 join 的左表
         Table leftTable = null;
-        if (mainTables.size() == 1) {
+
+        if (mainTables == null) {
+            mainTables = new ArrayList<>();
+        } else if (mainTables.size() == 1) {
             mainTable = mainTables.get(0);
             leftTable = mainTable;
         }
@@ -461,22 +448,16 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
 
                 // 当前表是否忽略
                 Table joinTable = joinTables.get(0);
-                //处理别名 比如 gdep_mdm_size gms 只取 gdep_mdm_size
-                String name = joinTable.getName();
-                String[] joinTableNames = name.split(" ");
-                boolean joinTableNeedIgnore = tenantLineHandler.ignoreTable(joinTableNames[0]);
 
                 List<Table> onTables = null;
                 // 如果不要忽略，且是右连接，则记录下当前表
                 if (join.isRight()) {
-                    mainTable = joinTableNeedIgnore ? null : joinTable;
+                    mainTable = joinTable;
                     if (leftTable != null) {
                         onTables = Collections.singletonList(leftTable);
                     }
                 } else if (join.isLeft()) {
-                    if (!joinTableNeedIgnore) {
-                        onTables = Collections.singletonList(joinTable);
-                    }
+                     onTables = Collections.singletonList(joinTable);
                 } else if (join.isInner()) {
                     if (mainTable == null) {
                         onTables = Collections.singletonList(joinTable);
@@ -485,6 +466,7 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
                     }
                     mainTable = null;
                 }
+
                 mainTables = new ArrayList<>();
                 if (mainTable != null) {
                     mainTables.add(mainTable);
@@ -520,7 +502,6 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
                 processOtherFromItem(joinItem);
                 leftTable = null;
             }
-
         }
 
         return mainTables;
@@ -538,8 +519,14 @@ public class TenantLineInnerInterceptor extends JsqlParserSupport implements Inn
         Expression tenantId = tenantLineHandler.getTenantId();
         // 构造每张表的条件
         List<EqualsTo> equalsTos = tables.stream()
+            .filter(x -> !tenantLineHandler.ignoreTable(x.getName()))
             .map(item -> new EqualsTo(getAliasColumn(item), tenantId))
             .collect(Collectors.toList());
+
+        if(CollectionUtils.isEmpty(equalsTos)){
+            return currentExpression;
+        }
+
         // 注入的表达式
         Expression injectExpression = equalsTos.get(0);
         // 如果有多表，则用 and 连接

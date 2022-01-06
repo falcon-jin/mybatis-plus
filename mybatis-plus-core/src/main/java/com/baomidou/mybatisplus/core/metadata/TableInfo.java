@@ -14,6 +14,7 @@ import org.apache.ibatis.mapping.ResultFlag;
 import org.apache.ibatis.mapping.ResultMap;
 import org.apache.ibatis.mapping.ResultMapping;
 import org.apache.ibatis.reflection.Reflector;
+import org.apache.ibatis.reflection.SystemMetaObject;
 import org.apache.ibatis.session.Configuration;
 
 import java.lang.reflect.Constructor;
@@ -32,7 +33,6 @@ import static java.util.stream.Collectors.joining;
 @Data
 @Setter(AccessLevel.PACKAGE)
 @Accessors(chain = true)
-@SuppressWarnings("serial")
 public class TableInfo implements Constants {
 
     /**
@@ -175,6 +175,7 @@ public class TableInfo implements Constants {
     @Deprecated
     public TableInfo(Class<?> entityType) {
         this.entityType = entityType;
+        this.reflector = SystemMetaObject.NULL_META_OBJECT.getReflectorFactory().findForClass(entityType);
     }
 
     /**
@@ -210,6 +211,7 @@ public class TableInfo implements Constants {
         Assert.notNull(configuration, "Error: You need Initialize MybatisConfiguration !");
         this.configuration = configuration;
         this.underCamel = configuration.isMapUnderscoreToCamelCase();
+        this.reflector = configuration.getReflectorFactory().findForClass(this.entityType);
     }
 
     /**
