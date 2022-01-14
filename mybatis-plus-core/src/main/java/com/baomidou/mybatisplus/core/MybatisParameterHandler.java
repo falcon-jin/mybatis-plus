@@ -61,6 +61,7 @@ public class MybatisParameterHandler implements ParameterHandler {
             if (SimpleTypeRegistry.isSimpleType(parameter.getClass())) {
                 return parameter;
             }
+            //传入的是list
             Collection<Object> parameters = getParameters(parameter);
             if (null != parameters) {
                 // 感觉这里可以稍微优化一下，理论上都是同一个.
@@ -97,9 +98,12 @@ public class MybatisParameterHandler implements ParameterHandler {
                 //到这里就应该转换到实体参数对象了,因为填充和ID处理都是针对实体对象处理的,不用传递原参数对象下去.
                 MetaObject metaObject = this.configuration.newMetaObject(entity);
                 if (SqlCommandType.INSERT == this.sqlCommandType) {
+                    //填充主健
                     populateKeys(tableInfo, metaObject, entity);
+                    //填充插入字段 插入元对象字段填充（用于插入时对公共字段的填充） 调用MetaObjectHandler的insertFill方法
                     insertFill(metaObject, tableInfo);
                 } else {
+                    //填充更新字段 更新元对象字段填充（用于更新时对公共字段的填充） 调用MetaObjectHandler的updateFill方法
                     updateFill(metaObject, tableInfo);
                 }
             }
@@ -107,6 +111,7 @@ public class MybatisParameterHandler implements ParameterHandler {
     }
 
 
+    //填充主健
     protected void populateKeys(TableInfo tableInfo, MetaObject metaObject, Object entity) {
         final IdType idType = tableInfo.getIdType();
         final String keyProperty = tableInfo.getKeyProperty();
@@ -143,7 +148,7 @@ public class MybatisParameterHandler implements ParameterHandler {
         }
     }
 
-
+    //填充插入字段 插入元对象字段填充（用于插入时对公共字段的填充） 调用MetaObjectHandler的insertFill方法
     protected void insertFill(MetaObject metaObject, TableInfo tableInfo) {
         GlobalConfigUtils.getMetaObjectHandler(this.configuration).ifPresent(metaObjectHandler -> {
             if (metaObjectHandler.openInsertFill() && tableInfo.isWithInsertFill()) {
@@ -151,7 +156,7 @@ public class MybatisParameterHandler implements ParameterHandler {
             }
         });
     }
-
+    //填充更新字段 更新元对象字段填充（用于更新时对公共字段的填充） 调用MetaObjectHandler的updateFill方法
     protected void updateFill(MetaObject metaObject, TableInfo tableInfo) {
         GlobalConfigUtils.getMetaObjectHandler(this.configuration).ifPresent(metaObjectHandler -> {
             if (metaObjectHandler.openUpdateFill() && tableInfo.isWithUpdateFill()) {
