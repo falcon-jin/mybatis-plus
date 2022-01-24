@@ -14,7 +14,7 @@ ext {
         mybatisVersion = '3.5.9',
         mybatisSpringVersion = '2.0.6',
         mybatisSpringBootStarterVersion = '2.2.1',
-        springVersion = '5.3.9',
+        springVersion = '5.3.15',
         springBootVersion = '2.5.3',
         jsqlparserVersion = '4.3',
         junitVersion = '5.7.2',
@@ -41,7 +41,7 @@ ext {
 
         "javax.servlet-api"          : "javax.servlet:javax.servlet-api:4.0.1",
         "aspectjweaver"              : "org.aspectj:aspectjweaver:1.9.7",
-        "slf4j-api"                  : "org.slf4j:slf4j-api:1.7.32",
+        "slf4j-api"                  : "org.slf4j:slf4j-api:1.7.33",
         "logback-classic"            : "ch.qos.logback:logback-classic:1.2.5",
         //copy
         "mybatis-spring-boot-starter": "org.mybatis.spring.boot:mybatis-spring-boot-starter:${mybatisSpringBootStarterVersion}",
@@ -60,8 +60,8 @@ ext {
         "oracle"                     : fileTree(dir: 'libs', includes: ['ojdbc-11.2.0.3-jdk16.jar']),
         "dm"                         : fileTree(dir: 'libs', includes: ["jdbcDriver-18.jar"]),
         "kingbase"                   : fileTree(dir: 'libs', includes: ["kingbase8-8.2.0.jar"]),
-        "h2"                         : "com.h2database:h2:2.0.206",
-        "mysql"                      : "mysql:mysql-connector-java:8.0.26",
+        "h2"                         : "com.h2database:h2:2.1.210",
+        "mysql"                      : "mysql:mysql-connector-java:8.0.28",
         "sqlite"                     : "org.xerial:sqlite-jdbc:3.36.0.3",
         "firebird"                   : "org.firebirdsql.jdbc:jaybird:4.0.5.java8",
         //cache
