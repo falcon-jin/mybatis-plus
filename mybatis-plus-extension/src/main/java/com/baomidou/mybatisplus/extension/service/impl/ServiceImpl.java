@@ -2,6 +2,7 @@
 package com.baomidou.mybatisplus.extension.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.enums.SqlMethod;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
@@ -188,6 +189,11 @@ public class ServiceImpl<M extends BaseMapper<T>, T> implements IService<T> {
             return baseMapper.selectOne(queryWrapper);
         }
         return SqlHelper.getObject(log, baseMapper.selectList(queryWrapper));
+    }
+
+    @Override
+    public T getOne(Boolean limit, QueryWrapper<T> queryWrapper) {
+        return baseMapper.selectOne(queryWrapper,limit);
     }
 
     @Override

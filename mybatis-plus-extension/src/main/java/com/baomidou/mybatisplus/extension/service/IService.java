@@ -2,6 +2,7 @@
 package com.baomidou.mybatisplus.extension.service;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.core.toolkit.Assert;
@@ -313,6 +314,13 @@ public interface IService<T> {
      * @param throwEx      有多个 result 是否抛出异常
      */
     T getOne(Wrapper<T> queryWrapper, boolean throwEx);
+    /**
+     * 根据 Wrapper，查询一条记录
+     *
+     * @param queryWrapper 实体对象封装操作类 {@link com.baomidou.mybatisplus.core.conditions.query.QueryWrapper}
+     * @param limit    添加limit 1 限制条件
+     */
+    T getOne(Boolean limit, QueryWrapper<T> queryWrapper);
 
     /**
      * 根据 Wrapper，查询一条记录

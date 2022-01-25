@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.injector.methods.InsertBatch;
 import org.apache.ibatis.annotations.Param;
 
@@ -20,54 +21,6 @@ import java.io.Serializable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-
-/*
-
-               :`
-                    .:,
-                     :::,,.
-             ::      `::::::
-             ::`    `,:,` .:`
-             `:: `::::::::.:`      `:';,`
-              ::::,     .:::`   `@++++++++:
-               ``        :::`  @+++++++++++#
-                         :::, #++++++++++++++`
-                 ,:      `::::::;'##++++++++++
-                 .@#@;`   ::::::::::::::::::::;
-                  #@####@, :::::::::::::::+#;::.
-                  @@######+@:::::::::::::.  #@:;
-           ,      @@########':::::::::::: .#''':`
-           ;##@@@+:##########@::::::::::: @#;.,:.
-            #@@@######++++#####'::::::::: .##+,:#`
-            @@@@@#####+++++'#####+::::::::` ,`::@#:`
-            `@@@@#####++++++'#####+#':::::::::::@.
-             @@@@######+++++''#######+##';::::;':,`
-              @@@@#####+++++'''#######++++++++++`
-               #@@#####++++++''########++++++++'
-               `#@######+++++''+########+++++++;
-                `@@#####+++++''##########++++++,
-                 @@######+++++'##########+++++#`
-                @@@@#####+++++############++++;
-              ;#@@@@@####++++##############+++,
-             @@@@@@@@@@@###@###############++'
-           @#@@@@@@@@@@@@###################+:
-        `@#@@@@@@@@@@@@@@###################'`
-      :@#@@@@@@@@@@@@@@@@@##################,
-      ,@@@@@@@@@@@@@@@@@@@@################;
-       ,#@@@@@@@@@@@@@@@@@@@##############+`
-        .#@@@@@@@@@@@@@@@@@@#############@,
-          @@@@@@@@@@@@@@@@@@@###########@,
-           :#@@@@@@@@@@@@@@@@##########@,
-            `##@@@@@@@@@@@@@@@########+,
-              `+@@@@@@@@@@@@@@@#####@:`
-                `:@@@@@@@@@@@@@@##@;.
-                   `,'@@@@##@@@+;,`
-                        ``...``
-
- _ _     /_ _ _/_. ____  /    _
-/ / //_//_//_|/ /_\  /_///_/_\      Talk is cheap. Show me the code.
-     _/             /
- */
 
 /**
  * Mapper 继承该接口后，无需编写 mapper.xml 文件，即可获得CRUD功能
@@ -165,7 +118,7 @@ public interface BaseMapper<T> extends Mapper<T> {
 
     /**
      * 根据 entity 条件，查询一条记录
-     * <p>查询一条记录，例如 qw.last("limit 1") 限制取一条记录, 注意：多条数据会报异常</p>
+     * 注意：多条数据会报异常</p>
      *
      * @param queryWrapper 实体对象封装操作类（可以为 null）
      */
@@ -180,6 +133,25 @@ public interface BaseMapper<T> extends Mapper<T> {
         return null;
     }
 
+    /**
+     * 根据 entity 条件，查询一条记录
+     * @param queryWrapper 实体对象封装操作类（可以为 null）
+     * @param limit 是否限制只取一条
+     * @return
+     */
+    default T selectOne(@Param(Constants.WRAPPER) QueryWrapper<T> queryWrapper, Boolean limit) {
+        if(limit){
+            queryWrapper.last("LIMIT 1");
+        }
+        List<T> ts = this.selectList(queryWrapper);
+        if (CollectionUtils.isNotEmpty(ts)) {
+            if (ts.size() != 1) {
+                throw ExceptionUtils.mpe("One record is expected, but the query result is multiple records");
+            }
+            return ts.get(0);
+        }
+        return null;
+    }
     /**
      * 根据 Wrapper 条件，判断是否存在记录
      *
