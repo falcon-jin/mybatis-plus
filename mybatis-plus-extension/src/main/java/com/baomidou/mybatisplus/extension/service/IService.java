@@ -14,8 +14,6 @@ import com.baomidou.mybatisplus.extension.conditions.query.QueryChainWrapper;
 import com.baomidou.mybatisplus.extension.conditions.update.ChainUpdate;
 import com.baomidou.mybatisplus.extension.conditions.update.LambdaUpdateChainWrapper;
 import com.baomidou.mybatisplus.extension.conditions.update.UpdateChainWrapper;
-import com.baomidou.mybatisplus.extension.kotlin.KtQueryChainWrapper;
-import com.baomidou.mybatisplus.extension.kotlin.KtUpdateChainWrapper;
 import com.baomidou.mybatisplus.extension.toolkit.ChainWrappers;
 import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
 import org.springframework.transaction.annotation.Transactional;
@@ -516,25 +514,7 @@ public interface IService<T> {
         return ChainWrappers.lambdaQueryChain(getBaseMapper());
     }
 
-    /**
-     * 链式查询 lambda 式
-     * kotlin 使用
-     *
-     * @return KtQueryWrapper 的包装类
-     */
-    default KtQueryChainWrapper<T> ktQuery() {
-        return ChainWrappers.ktQueryChain(getBaseMapper(), getEntityClass());
-    }
 
-    /**
-     * 链式查询 lambda 式
-     * kotlin 使用
-     *
-     * @return KtQueryWrapper 的包装类
-     */
-    default KtUpdateChainWrapper<T> ktUpdate() {
-        return ChainWrappers.ktUpdateChain(getBaseMapper(), getEntityClass());
-    }
 
     /**
      * 链式更改 普通
