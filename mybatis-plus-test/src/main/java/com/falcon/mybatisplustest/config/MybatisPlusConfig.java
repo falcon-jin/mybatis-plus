@@ -4,11 +4,8 @@ package com.falcon.mybatisplustest.config;
 import com.baomidou.mybatisplus.autoconfigure.ConfigurationCustomizer;
 import com.baomidou.mybatisplus.extension.MybatisMapWrapperFactory;
 import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
-import com.baomidou.mybatisplus.extension.plugins.handler.TenantLineHandler;
+import com.baomidou.mybatisplus.extension.plugins.inner.PaginationInnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.inner.SqlLogInterceptor;
-import com.baomidou.mybatisplus.extension.plugins.inner.TenantLineInnerInterceptor;
-import net.sf.jsqlparser.expression.Expression;
-import net.sf.jsqlparser.expression.LongValue;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -41,7 +38,7 @@ public class MybatisPlusConfig {
         }));*/
         // 如果用了分页插件注意先 add TenantLineInnerInterceptor 再 add PaginationInnerInterceptor
         // 用了分页插件必须设置 MybatisConfiguration#useDeprecatedExecutor = false
-//        interceptor.addInnerInterceptor(new PaginationInnerInterceptor());
+        interceptor.addInnerInterceptor(new PaginationInnerInterceptor());
 
 
         return interceptor;
@@ -54,6 +51,7 @@ public class MybatisPlusConfig {
             //开启返回map结果集的下划线转驼峰
             configuration.setObjectWrapperFactory(new MybatisMapWrapperFactory());
             configuration.addInterceptor(new SqlLogInterceptor());
+            configuration.addInterceptor(new PerformanceInterceptor());
         };
     }
 }

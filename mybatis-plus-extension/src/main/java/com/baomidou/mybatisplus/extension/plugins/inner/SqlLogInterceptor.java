@@ -37,27 +37,33 @@ public class SqlLogInterceptor implements Interceptor {
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
-        try {
-            Object target = invocation.getTarget();
-            if (target instanceof StatementHandler) {
-
-                MetaObject metaObject = SystemMetaObject.forObject(target);
-                MappedStatement ms = (MappedStatement) metaObject.getValue("delegate.mappedStatement");
-                BoundSql boundSql = ((StatementHandler) target).getBoundSql();
-                String sql = showSql(ms.getConfiguration(), boundSql, 1L, ms.getId());
-                long start = SystemClock.now();
-                Object result = invocation.proceed();
-                long timing = SystemClock.now() - start;
-                System.err.println(this.format("\n==============  Sql Start  ==============\nExecute ID  ：{}\nExecute SQL ：{}\nExecute Time：{} ms\n==============  Sql  End   ==============\n", ms.getId(), sql, timing));
-                return result;
+        MappedStatement ms = null;
+        Object target = invocation.getTarget();
+        if (target instanceof StatementHandler) {
+            MetaObject metaObject = SystemMetaObject.forObject(target);
+            if (metaObject.hasGetter("h.target.delegate.mappedStatement")) {
+                ms = (MappedStatement) metaObject.getValue("h.target.delegate.mappedStatement");
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+            if (metaObject.hasGetter("delegate.mappedStatement")) {
+                ms = (MappedStatement) metaObject.getValue("delegate.mappedStatement");
+            }
+            if (Objects.isNull(ms)) {
+                return invocation.proceed();
+            }
+            BoundSql boundSql = ((StatementHandler) target).getBoundSql();
+            String sql = showSql(ms.getConfiguration(), boundSql, 1L, ms.getId());
+            long start = SystemClock.now();
+            Object result = invocation.proceed();
+            long timing = SystemClock.now() - start;
+            System.err.println(this.format("\n==============  Sql Start  ==============\nExecute ID  ：{}\nExecute SQL ：{}\nExecute Time：{} ms\n==============  Sql  End   ==============\n", ms.getId(), sql, timing));
+            return result;
         }
         return invocation.proceed();
+
     }
+
     private String format(final String strPattern, final Object... argArray) {
-        if (Objects.isNull(argArray)||argArray.length==0) {
+        if (Objects.isNull(argArray) || argArray.length == 0) {
             return strPattern;
         }
         final int strPatternLength = strPattern.length();
@@ -99,7 +105,7 @@ public class SqlLogInterceptor implements Interceptor {
                     /**
                      * 双转义符
                      */
-                    if (delimIndex > 1 &&toStr(strPattern.charAt(delimIndex - 2)).equals(StringPool.BACK_SLASH)) {
+                    if (delimIndex > 1 && toStr(strPattern.charAt(delimIndex - 2)).equals(StringPool.BACK_SLASH)) {
                         //转义符之前还有一个转义符，占位符依旧有效
                         sbuf.append(strPattern, handledPosition, delimIndex - 1);
                         sbuf.append(toStr(argArray[argIndex]));
@@ -124,6 +130,7 @@ public class SqlLogInterceptor implements Interceptor {
 
         return sbuf.toString();
     }
+
     @Override
     public Object plugin(Object target) {
         if (target instanceof Executor || target instanceof StatementHandler) {
@@ -132,48 +139,54 @@ public class SqlLogInterceptor implements Interceptor {
         return target;
     }
 
-    private  String showSql(Configuration configuration, BoundSql boundSql, long time, String sqlId){
-        Object parameterObject = boundSql.getParameterObject();
+    private String showSql(Configuration configuration, BoundSql boundSql, long time, String sqlId) {
+        try {
+            Object parameterObject = boundSql.getParameterObject();
 
-        List parameterMappings = boundSql.getParameterMappings();
+            List parameterMappings = boundSql.getParameterMappings();
 
 //替换空格、换行、tab缩进等
 
-        String sql = boundSql.getSql().replaceAll("[\\s]+", " ");
+            String sql = boundSql.getSql().replaceAll("[\\s]+", " ");
 
-        if (parameterMappings.size() > 0 && parameterObject != null) {
-            TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
+            if (parameterMappings.size() > 0 && parameterObject != null) {
+                TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
 
-            if (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) {
-                sql = sql.replaceFirst("\\?", getParameterValue(parameterObject));
+                if (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) {
+                    sql = sql.replaceFirst("\\?", getParameterValue(parameterObject));
 
-            } else {
-                MetaObject metaObject = configuration.newMetaObject(parameterObject);
+                } else {
+                    MetaObject metaObject = configuration.newMetaObject(parameterObject);
 
-                for (Object parameterMapping : parameterMappings) {
-                    String propertyName = ((ParameterMapping)parameterMapping).getProperty();
+                    for (Object parameterMapping : parameterMappings) {
+                        String propertyName = ((ParameterMapping) parameterMapping).getProperty();
 
-                    if (metaObject.hasGetter(propertyName)) {
-                        Object obj = metaObject.getValue(propertyName);
+                        if (metaObject.hasGetter(propertyName)) {
+                            Object obj = metaObject.getValue(propertyName);
 
-                        sql = sql.replaceFirst("\\?", getParameterValue(obj));
+                            sql = sql.replaceFirst("\\?", getParameterValue(obj));
 
-                    } else if (boundSql.hasAdditionalParameter(propertyName)) {
-                        Object obj = boundSql.getAdditionalParameter(propertyName);
+                        } else if (boundSql.hasAdditionalParameter(propertyName)) {
+                            Object obj = boundSql.getAdditionalParameter(propertyName);
 
-                        sql = sql.replaceFirst("\\?", getParameterValue(obj));
+                            sql = sql.replaceFirst("\\?", getParameterValue(obj));
+
+                        }
 
                     }
 
                 }
 
             }
-
+            return sql;
+        } catch (Exception e) {
+            e.printStackTrace();
         }
-        return sql;
+        return "";
 
     }
-    private  String getParameterValue(Object obj){
+
+    private String getParameterValue(Object obj) {
         String value;
 
         if (obj instanceof String) {
@@ -198,10 +211,12 @@ public class SqlLogInterceptor implements Interceptor {
         return value.replace("$", "\\$");
 
     }
-    private  String toStr(Object o) {
-        return toStr(o,"");
+
+    private String toStr(Object o) {
+        return toStr(o, "");
     }
-    private  String toStr(Object str, String defaultValue) {
+
+    private String toStr(Object str, String defaultValue) {
         if (null == str) {
             return defaultValue;
         }

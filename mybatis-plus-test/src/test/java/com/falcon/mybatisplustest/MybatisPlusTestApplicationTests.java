@@ -4,16 +4,15 @@ import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.QueryChainWrapper;
 import com.baomidou.mybatisplus.extension.conditions.update.UpdateChainWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.falcon.mybatisplustest.entity.User;
 import com.falcon.mybatisplustest.mapper.UserMapper;
-import org.apache.ibatis.session.SqlSession;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 @SpringBootTest
 class MybatisPlusTestApplicationTests {
@@ -57,9 +56,10 @@ class MybatisPlusTestApplicationTests {
     @Test
     void testSelect() {
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
-        queryWrapper.lambda().eq(User::getId,1).eq(User::getEmail,"123");
-        User users = userMapper.selectOne(queryWrapper,true);
-
+       // queryWrapper.lambda().eq(User::getId,1).eq(User::getEmail,"123");
+        //User users = userMapper.selectOne(queryWrapper,true);
+        Page<User> userPage = userMapper.selectPage(new Page<>(2, 5), queryWrapper);
+        System.out.println(userPage);
     }
 
 
