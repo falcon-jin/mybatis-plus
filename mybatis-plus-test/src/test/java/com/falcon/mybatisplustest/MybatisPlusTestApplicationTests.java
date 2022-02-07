@@ -7,6 +7,7 @@ import com.baomidou.mybatisplus.extension.conditions.update.UpdateChainWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.falcon.mybatisplustest.entity.User;
 import com.falcon.mybatisplustest.mapper.UserMapper;
+import com.falcon.mybatisplustest.service.IUserService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -18,6 +19,9 @@ import java.util.List;
 class MybatisPlusTestApplicationTests {
     @Autowired
     public UserMapper userMapper;
+    @Autowired
+    public IUserService userService;
+
 
     @Test
     void testLambdaQueryChainWrapper() {
@@ -60,9 +64,16 @@ class MybatisPlusTestApplicationTests {
         //User users = userMapper.selectOne(queryWrapper,true);
         Page<User> userPage = userMapper.selectPage(new Page<>(2, 5), queryWrapper);
         System.out.println(userPage);
+
     }
 
+    @Test
+    void testSaveOrUpdate() {
+        List<User> list = userService.list();
+        ArrayList<User> entityList = new ArrayList<>();
+        userService.saveOrUpdateBatch(entityList);
 
+    }
 
 
 
