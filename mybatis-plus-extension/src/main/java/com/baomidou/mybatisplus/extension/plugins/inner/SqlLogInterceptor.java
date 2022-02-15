@@ -47,6 +47,9 @@ public class SqlLogInterceptor implements Interceptor {
             if (metaObject.hasGetter("delegate.mappedStatement")) {
                 ms = (MappedStatement) metaObject.getValue("delegate.mappedStatement");
             }
+            if(metaObject.hasGetter("h.target.h.target.delegate")){
+                ms = (MappedStatement) metaObject.getValue("h.target.h.target.delegate.mappedStatement");
+            }
             if (Objects.isNull(ms)) {
                 return invocation.proceed();
             }
