@@ -110,6 +110,19 @@ public class ServiceImpl<M extends BaseMapper<T>, T> implements IService<T> {
     }
 
     /**
+     * 批量插入 mybatis plus原生的批量保存
+     *
+     * @param entityList ignore
+     * @param batchSize  ignore
+     * @return ignore
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public boolean saveBatchOld(Collection<T> entityList, int batchSize) {
+        String sqlStatement = getSqlStatement(SqlMethod.INSERT_ONE);
+        return executeBatch(entityList, batchSize, (sqlSession, entity) -> sqlSession.insert(sqlStatement, entity));
+    }
+    /**
      * 批量插入
      *
      * @param entityList ignore
@@ -119,10 +132,9 @@ public class ServiceImpl<M extends BaseMapper<T>, T> implements IService<T> {
     @Transactional(rollbackFor = Exception.class)
     @Override
     public boolean saveBatch(Collection<T> entityList, int batchSize) {
-        String sqlStatement = getSqlStatement(SqlMethod.INSERT_ONE);
-        return executeBatch(entityList, batchSize, (sqlSession, entity) -> sqlSession.insert(sqlStatement, entity));
+        String sqlStatement = getSqlStatement(SqlMethod.INSERT_BATCH);
+        return executeBatchSave(entityList, batchSize, (sqlSession, entity) -> sqlSession.insert(sqlStatement, entity));
     }
-
     /**
      * 获取mapperStatementId
      *
@@ -231,7 +243,9 @@ public class ServiceImpl<M extends BaseMapper<T>, T> implements IService<T> {
     protected <E> boolean executeBatch(Collection<E> list, int batchSize, BiConsumer<SqlSession, E> consumer) {
         return SqlHelper.executeBatch(this.entityClass, this.log, list, batchSize, consumer);
     }
-
+    protected <E> boolean executeBatchSave(Collection<E> list, int batchSize, BiConsumer<SqlSession, Collection<E> > consumer) {
+        return SqlHelper.executeBatchSave(this.entityClass, this.log, list, batchSize, consumer);
+    }
     /**
      * 执行批量操作（默认批次提交数量{@link IService#DEFAULT_BATCH_SIZE}）
      *

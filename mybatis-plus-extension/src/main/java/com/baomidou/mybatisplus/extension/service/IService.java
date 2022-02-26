@@ -55,17 +55,17 @@ public interface IService<T> {
      */
     @Transactional(rollbackFor = Exception.class)
     default boolean saveBatch(Collection<T> entityList) {
-        return saveBatch(entityList, DEFAULT_BATCH_SIZE);
+        return saveBatch(entityList, 200);
     }
-
     /**
      * 插入（批量）
      *
      * @param entityList 实体对象集合
      * @param batchSize  插入批次数量
      */
-    boolean saveBatch(Collection<T> entityList, int batchSize);
+    boolean saveBatchOld(Collection<T> entityList, int batchSize);
 
+    boolean saveBatch(Collection<T> entityList, int batchSize);
     /**
      * 批量修改插入
      *

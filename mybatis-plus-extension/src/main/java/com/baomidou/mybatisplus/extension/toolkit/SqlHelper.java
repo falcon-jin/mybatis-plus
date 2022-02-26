@@ -26,6 +26,8 @@ import java.util.function.BiConsumer;
 import java.util.function.BiPredicate;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * SQL 辅助类
@@ -214,6 +216,61 @@ public final class SqlHelper {
             }
         });
     }
+
+    /**
+     * 优化批量保存方法
+     * @param entityClass
+     * @param log
+     * @param list
+     * @param batchSize
+     * @param consumer
+     * @param <E>
+     * @return
+     */
+    public static <E> boolean executeBatchSave(Class<?> entityClass, Log log, Collection<E> list, int batchSize, BiConsumer<SqlSession, Collection<E>> consumer) {
+        if(batchSize>200){
+            batchSize=200;
+        }
+        Assert.isFalse(batchSize < 1, "batchSize must not be less than one");
+        int finalBatchSize = batchSize;
+        return !CollectionUtils.isEmpty(list) && executeBatch(entityClass, log, sqlSession -> {
+            int size = list.size();
+            int idxLimit = Math.min(finalBatchSize, size);
+            Collection<Collection<E>> collections = subCollection(list, idxLimit);
+            for (Collection<E> collection : collections) {
+                consumer.accept(sqlSession, collection);
+                sqlSession.flushStatements();
+            }
+        });
+    }
+    /**
+     * 将一组数据平均分成n组
+     *
+     * @param collections 要分组的数据源
+     * @param maxNum      每组最大数量
+     * @param <T>
+     * @return
+     */
+
+    public static <T> Collection<Collection<T>> subCollection(Collection<T> collections, int maxNum) {
+
+        int limit = (collections.size() + maxNum - 1) / maxNum;
+        //方法一：使用流遍历操作
+//        Collection<Collection<T>> mglist = new ArrayList<>();
+//        Stream.iterate(0, n -> n + 1).limit(limit).forEach(i -> {
+//            mglist.add(collections.stream().skip(i * maxNum).limit(maxNum).collect(Collectors.toList()));
+//        });
+//        return mglist;
+
+        //方法二：获取分割后的集合
+        Collection<Collection<T>> splitCollection = Stream.iterate(
+            0, n -> n + 1).limit(limit).parallel().map(
+            a -> collections.stream().skip(a * maxNum).limit(maxNum).parallel()
+                .collect(Collectors.toList())).collect(Collectors.toList());
+
+        return splitCollection;
+    }
+
 
     /**
      * 批量更新或保存

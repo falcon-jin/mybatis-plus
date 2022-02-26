@@ -51,7 +51,6 @@ public class MybatisPlusConfig {
             //开启返回map结果集的下划线转驼峰
             configuration.setObjectWrapperFactory(new MybatisMapWrapperFactory());
             configuration.addInterceptor(new SqlLogInterceptor());
-            configuration.addInterceptor(new PerformanceInterceptor());
         };
     }
 }

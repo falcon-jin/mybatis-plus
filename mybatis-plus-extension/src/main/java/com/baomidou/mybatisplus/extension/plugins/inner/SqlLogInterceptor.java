@@ -1,229 +1,544 @@
 package com.baomidou.mybatisplus.extension.plugins.inner;
 
-
-import com.baomidou.mybatisplus.core.toolkit.StringPool;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.baomidou.mybatisplus.core.toolkit.PluginUtils;
+import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.SystemClock;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.ibatis.executor.Executor;
 import org.apache.ibatis.executor.statement.StatementHandler;
-import org.apache.ibatis.mapping.BoundSql;
 import org.apache.ibatis.mapping.MappedStatement;
-import org.apache.ibatis.mapping.ParameterMapping;
 import org.apache.ibatis.plugin.*;
 import org.apache.ibatis.reflection.MetaObject;
 import org.apache.ibatis.reflection.SystemMetaObject;
-import org.apache.ibatis.session.Configuration;
-import org.apache.ibatis.type.TypeHandlerRegistry;
+import org.apache.ibatis.session.ResultHandler;
 
-
-import java.sql.Connection;
-import java.text.DateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
-import java.util.Objects;
+import java.lang.reflect.Method;
+import java.lang.reflect.Proxy;
+import java.sql.Statement;
+import java.util.*;
 
 /**
- * 用于输出每条 SQL 语句及其执行时间
+ * <p>
+ * 性能分析拦截器，用于输出每条 SQL 语句及其执行时间
+ * </p>
+ *
+ * @author hubin
+ * @Date 2021-10-09
  */
 @Slf4j
-@Intercepts(
-    {
-        @Signature(type = StatementHandler.class, method = "prepare", args = {Connection.class, Integer.class}),
-    }
-)
+@Intercepts({@Signature(type = StatementHandler.class, method = "query", args = {Statement.class, ResultHandler.class}),
+    @Signature(type = StatementHandler.class, method = "update", args = {Statement.class}),
+    @Signature(type = StatementHandler.class, method = "batch", args = {Statement.class})})
 public class SqlLogInterceptor implements Interceptor {
-
+    /**
+     * SQL 执行最大时长，超过自动停止运行，有助于发现问题。
+     */
+    private long maxTime = 0;
+    /**
+     * SQL 是否格式化
+     */
+    private boolean format = false;
+    /**
+     * 是否写入日志文件<br>
+     * true 写入日志文件，不阻断程序执行！<br>
+     * 超过设定的最大执行时长异常提示！
+     */
+    private boolean writeInLog = false;
 
     @Override
     public Object intercept(Invocation invocation) throws Throwable {
-        MappedStatement ms = null;
-        Object target = invocation.getTarget();
-        if (target instanceof StatementHandler) {
-            MetaObject metaObject = SystemMetaObject.forObject(target);
-            if (metaObject.hasGetter("h.target.delegate.mappedStatement")) {
-                ms = (MappedStatement) metaObject.getValue("h.target.delegate.mappedStatement");
-            }
-            if (metaObject.hasGetter("delegate.mappedStatement")) {
-                ms = (MappedStatement) metaObject.getValue("delegate.mappedStatement");
-            }
-            if(metaObject.hasGetter("h.target.h.target.delegate")){
-                ms = (MappedStatement) metaObject.getValue("h.target.h.target.delegate.mappedStatement");
-            }
-            if (Objects.isNull(ms)) {
-                return invocation.proceed();
-            }
-            BoundSql boundSql = ((StatementHandler) target).getBoundSql();
-            String sql = showSql(ms.getConfiguration(), boundSql, 1L, ms.getId());
-            long start = SystemClock.now();
-            Object result = invocation.proceed();
-            long timing = SystemClock.now() - start;
-            System.err.println(this.format("\n==============  Sql Start  ==============\nExecute ID  ：{}\nExecute SQL ：{}\nExecute Time：{} ms\n==============  Sql  End   ==============\n", ms.getId(), sql, timing));
-            return result;
+        Statement statement;
+        Object firstArg = invocation.getArgs()[0];
+        if (Proxy.isProxyClass(firstArg.getClass())) {
+            statement = (Statement) SystemMetaObject.forObject(firstArg).getValue("h.statement");
+        } else {
+            statement = (Statement) firstArg;
         }
-        return invocation.proceed();
-
-    }
-
-    private String format(final String strPattern, final Object... argArray) {
-        if (Objects.isNull(argArray) || argArray.length == 0) {
-            return strPattern;
+        MetaObject stmtMetaObj = SystemMetaObject.forObject(statement);
+        try {
+            statement = (Statement) stmtMetaObj.getValue("stmt.statement");
+        } catch (Exception e) {
+            // do nothing
         }
-        final int strPatternLength = strPattern.length();
+        if (stmtMetaObj.hasGetter("delegate")) {//Hikari
+            try {
+                statement = (Statement) stmtMetaObj.getValue("delegate");
+            } catch (Exception e) {
 
-        /**
-         * 初始化定义好的长度以获得更好的性能
-         */
-        StringBuilder sbuf = new StringBuilder(strPatternLength + 50);
+            }
+        }
 
-        /**
-         * 记录已经处理到的位置
-         */
-        int handledPosition = 0;
+        String originalSql = null;
+        if (originalSql == null) {
+            originalSql = statement.toString();
+        }
+        originalSql = originalSql.replaceAll("[\\s]+", " ");
+        int index = indexOfSqlStart(originalSql);
+        if (index > 0) {
+            originalSql = originalSql.substring(index);
+        }
 
-        /**
-         * 占位符所在位置
-         */
-        int delimIndex;
-        for (int argIndex = 0; argIndex < argArray.length; argIndex++) {
-            delimIndex = strPattern.indexOf("{}", handledPosition);
-            /**
-             * 剩余部分无占位符
-             */
-            if (delimIndex == -1) {
-                /**
-                 * 不带占位符的模板直接返回
-                 */
-                if (handledPosition == 0) {
-                    return strPattern;
-                } else {
-                    sbuf.append(strPattern, handledPosition, strPatternLength);
-                    return sbuf.toString();
-                }
+        // 计算执行 SQL 耗时
+        long start = SystemClock.now();
+        Object result = invocation.proceed();
+        long timing = SystemClock.now() - start;
+
+        // 格式化 SQL 打印执行结果
+        Object target = PluginUtils.realTarget(invocation.getTarget());
+        MetaObject metaObject = SystemMetaObject.forObject(target);
+        MappedStatement ms = (MappedStatement) metaObject.getValue("delegate.mappedStatement");
+        StringBuilder formatSql = new StringBuilder();
+        formatSql.append("\n==============  Sql Start  ==============\n");
+        formatSql.append(" Execute ID ：").append(ms.getId()).append("\n");
+        formatSql.append(" Execute SQL：").append(sqlFormat(originalSql, format)).append("\n");
+        formatSql.append(" Time：").append(timing).append(" ms\n");
+        formatSql.append("==============  Sql End  ==============\n");
+        if (this.isWriteInLog()) {
+            if (this.getMaxTime() >= 1 && timing > this.getMaxTime()) {
+                log.error(formatSql.toString());
             } else {
-                /**
-                 * 转义符
-                 */
-                if (delimIndex > 0 && toStr(strPattern.charAt(delimIndex - 1)).equals(StringPool.BACK_SLASH)) {
-                    /**
-                     * 双转义符
-                     */
-                    if (delimIndex > 1 && toStr(strPattern.charAt(delimIndex - 2)).equals(StringPool.BACK_SLASH)) {
-                        //转义符之前还有一个转义符，占位符依旧有效
-                        sbuf.append(strPattern, handledPosition, delimIndex - 1);
-                        sbuf.append(toStr(argArray[argIndex]));
-                        handledPosition = delimIndex + 2;
-                    } else {
-                        //占位符被转义
-                        argIndex--;
-                        sbuf.append(strPattern, handledPosition, delimIndex - 1);
-                        sbuf.append(StringPool.LEFT_BRACE);
-                        handledPosition = delimIndex + 1;
-                    }
-                } else {//正常占位符
-                    sbuf.append(strPattern, handledPosition, delimIndex);
-                    sbuf.append(toStr(argArray[argIndex]));
-                    handledPosition = delimIndex + 2;
-                }
+                log.debug(formatSql.toString());
+            }
+        } else {
+            System.err.println(formatSql);
+            if (this.getMaxTime() >= 1 && timing > this.getMaxTime()) {
+                throw new RuntimeException(" The SQL execution time is too large, please optimize ! ");
             }
         }
-        // append the characters following the last {} pair.
-        //加入最后一个占位符后所有的字符
-        sbuf.append(strPattern, handledPosition, strPattern.length());
-
-        return sbuf.toString();
+        return result;
     }
 
     @Override
     public Object plugin(Object target) {
-        if (target instanceof Executor || target instanceof StatementHandler) {
+        if (target instanceof StatementHandler) {
             return Plugin.wrap(target, this);
         }
         return target;
     }
 
-    private String showSql(Configuration configuration, BoundSql boundSql, long time, String sqlId) {
-        try {
-            Object parameterObject = boundSql.getParameterObject();
+    @Override
+    public void setProperties(Properties prop) {
+        String maxTime = prop.getProperty("maxTime");
+        String format = prop.getProperty("format");
+        if (StringUtils.isNotEmpty(maxTime)) {
+            this.maxTime = Long.parseLong(maxTime);
+        }
+        if (StringUtils.isNotEmpty(format)) {
+            this.format = Boolean.valueOf(format);
+        }
+    }
 
-            List parameterMappings = boundSql.getParameterMappings();
+    public long getMaxTime() {
+        return maxTime;
+    }
 
-//替换空格、换行、tab缩进等
+    public SqlLogInterceptor setMaxTime(long maxTime) {
+        this.maxTime = maxTime;
+        return this;
+    }
 
-            String sql = boundSql.getSql().replaceAll("[\\s]+", " ");
+    public boolean isFormat() {
+        return format;
+    }
 
-            if (parameterMappings.size() > 0 && parameterObject != null) {
-                TypeHandlerRegistry typeHandlerRegistry = configuration.getTypeHandlerRegistry();
+    public SqlLogInterceptor setFormat(boolean format) {
+        this.format = format;
+        return this;
+    }
 
-                if (typeHandlerRegistry.hasTypeHandler(parameterObject.getClass())) {
-                    sql = sql.replaceFirst("\\?", getParameterValue(parameterObject));
+    public boolean isWriteInLog() {
+        return writeInLog;
+    }
 
-                } else {
-                    MetaObject metaObject = configuration.newMetaObject(parameterObject);
+    public SqlLogInterceptor setWriteInLog(boolean writeInLog) {
+        this.writeInLog = writeInLog;
+        return this;
+    }
 
-                    for (Object parameterMapping : parameterMappings) {
-                        String propertyName = ((ParameterMapping) parameterMapping).getProperty();
+    public Method getMethodRegular(Class<?> clazz, String methodName) {
+        if (Object.class.equals(clazz)) {
+            return null;
+        }
+        for (Method method : clazz.getDeclaredMethods()) {
+            if (method.getName().equals(methodName)) {
+                return method;
+            }
+        }
+        return getMethodRegular(clazz.getSuperclass(), methodName);
+    }
 
-                        if (metaObject.hasGetter(propertyName)) {
-                            Object obj = metaObject.getValue(propertyName);
+    /**
+     * 获取sql语句开头部分
+     *
+     * @param sql
+     * @return
+     */
+    private int indexOfSqlStart(String sql) {
+        String upperCaseSql = sql.toUpperCase();
+        Set<Integer> set = new HashSet<>();
+        set.add(upperCaseSql.indexOf("SELECT "));
+        set.add(upperCaseSql.indexOf("UPDATE "));
+        set.add(upperCaseSql.indexOf("INSERT "));
+        set.add(upperCaseSql.indexOf("DELETE "));
+        set.remove(-1);
+        if (CollectionUtils.isEmpty(set)) {
+            return -1;
+        }
+        List<Integer> list = new ArrayList<>(set);
+        Collections.sort(list, Integer::compareTo);
+        return list.get(0);
+    }
 
-                            sql = sql.replaceFirst("\\?", getParameterValue(obj));
+    private final static SqlFormatter sqlFormatter = new SqlFormatter();
 
-                        } else if (boundSql.hasAdditionalParameter(propertyName)) {
-                            Object obj = boundSql.getAdditionalParameter(propertyName);
+    /**
+     * 格式sql
+     *
+     * @param boundSql
+     * @param format
+     * @return
+     */
+    public static String sqlFormat(String boundSql, boolean format) {
+        if (format) {
+            try {
+                return sqlFormatter.format(boundSql);
+            } catch (Exception ignored) {
+            }
+        }
+        return boundSql;
+    }
 
-                            sql = sql.replaceFirst("\\?", getParameterValue(obj));
+    static class SqlFormatter {
+        public static final String WHITESPACE = " \n\r\f\t";
+        private static final Set<String> BEGIN_CLAUSES = new HashSet<>();
+        private static final Set<String> END_CLAUSES = new HashSet<>();
+        private static final Set<String> LOGICAL = new HashSet<>();
+        private static final Set<String> QUANTIFIERS = new HashSet<>();
+        private static final Set<String> DML = new HashSet<>();
+        private static final Set<String> MISC = new HashSet<>();
+        private static final String INDENT_STRING = "    ";
+        private static final String INITIAL = "\n    ";
 
+        static {
+            BEGIN_CLAUSES.add("left");
+            BEGIN_CLAUSES.add("right");
+            BEGIN_CLAUSES.add("inner");
+            BEGIN_CLAUSES.add("outer");
+            BEGIN_CLAUSES.add("group");
+            BEGIN_CLAUSES.add("order");
+
+            END_CLAUSES.add("where");
+            END_CLAUSES.add("set");
+            END_CLAUSES.add("having");
+            END_CLAUSES.add("join");
+            END_CLAUSES.add("from");
+            END_CLAUSES.add("by");
+            END_CLAUSES.add("join");
+            END_CLAUSES.add("into");
+            END_CLAUSES.add("union");
+
+            LOGICAL.add("and");
+            LOGICAL.add("or");
+            LOGICAL.add("when");
+            LOGICAL.add("else");
+            LOGICAL.add("end");
+
+            QUANTIFIERS.add("in");
+            QUANTIFIERS.add("all");
+            QUANTIFIERS.add("exists");
+            QUANTIFIERS.add("some");
+            QUANTIFIERS.add("any");
+
+            DML.add("insert");
+            DML.add("update");
+            DML.add("delete");
+
+            MISC.add("select");
+            MISC.add("on");
+        }
+
+        public String format(String source) {
+            return new FormatProcess(source).perform();
+        }
+
+        private static class FormatProcess {
+
+            boolean beginLine = true;
+            boolean afterBeginBeforeEnd;
+            boolean afterByOrSetOrFromOrSelect;
+            boolean afterValues;
+            boolean afterOn;
+            boolean afterBetween;
+            boolean afterInsert;
+            int inFunction;
+            int parensSinceSelect;
+            private LinkedList<Integer> parenCounts = new LinkedList<>();
+            private LinkedList<Boolean> afterByOrFromOrSelects = new LinkedList<>();
+
+            int indent = 1;
+
+            StringBuilder result = new StringBuilder();
+            StringTokenizer tokens;
+            String lastToken;
+            String token;
+            String lcToken;
+
+            public FormatProcess(String sql) {
+                tokens = new StringTokenizer(
+                    sql,
+                    "()+*/-=<>'`\"[]," + WHITESPACE,
+                    true
+                );
+            }
+
+            public String perform() {
+
+                result.append(INITIAL);
+
+                while (tokens.hasMoreTokens()) {
+                    token = tokens.nextToken();
+                    lcToken = token.toLowerCase(Locale.ROOT);
+
+                    if ("'".equals(token)) {
+                        String t = "";
+                        do {
+                            try {
+                                t = tokens.nextToken();
+                            } catch (Exception ignored) {
+                            }
+                            token += t;
                         }
+                        // cannot handle single quotes
+                        while (!"'".equals(t) && tokens.hasMoreTokens());
+                    } else if ("\"".equals(token)) {
+                        String t;
+                        do {
+                            t = tokens.nextToken();
+                            token += t;
+                        }
+                        while (!"\"".equals(t));
+                    }
 
+                    if (afterByOrSetOrFromOrSelect && ",".equals(token)) {
+                        commaAfterByOrFromOrSelect();
+                    } else if (afterOn && ",".equals(token)) {
+                        commaAfterOn();
+                    } else if ("(".equals(token)) {
+                        openParen();
+                    } else if (")".equals(token)) {
+                        closeParen();
+                    } else if (BEGIN_CLAUSES.contains(lcToken)) {
+                        beginNewClause();
+                    } else if (END_CLAUSES.contains(lcToken)) {
+                        endNewClause();
+                    } else if ("select".equals(lcToken)) {
+                        select();
+                    } else if (DML.contains(lcToken)) {
+                        updateOrInsertOrDelete();
+                    } else if ("values".equals(lcToken)) {
+                        values();
+                    } else if ("on".equals(lcToken)) {
+                        on();
+                    } else if (afterBetween && lcToken.equals("and")) {
+                        misc();
+                        afterBetween = false;
+                    } else if (LOGICAL.contains(lcToken)) {
+                        logical();
+                    } else if (isWhitespace(token)) {
+                        white();
+                    } else {
+                        misc();
+                    }
+
+                    if (!isWhitespace(token)) {
+                        lastToken = lcToken;
                     }
 
                 }
-
-            }
-            return sql;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return "";
-
-    }
-
-    private String getParameterValue(Object obj) {
-        String value;
-
-        if (obj instanceof String) {
-            value = "'" + obj.toString() + "'";
-
-        } else if (obj instanceof Date) {
-            DateFormat formatter = DateFormat.getDateTimeInstance(DateFormat.DEFAULT, DateFormat.DEFAULT, Locale.CHINA);
-
-            value = "'" + formatter.format(new Date()) + "'";
-
-        } else {
-            if (obj != null) {
-                value = obj.toString();
-
-            } else {
-                value = "null";
-
+                return result.toString();
             }
 
+            private void commaAfterOn() {
+                out();
+                indent--;
+                newline();
+                afterOn = false;
+                afterByOrSetOrFromOrSelect = true;
+            }
+
+            private void commaAfterByOrFromOrSelect() {
+                out();
+                newline();
+            }
+
+            private void logical() {
+                if ("end".equals(lcToken)) {
+                    indent--;
+                }
+                newline();
+                out();
+                beginLine = false;
+            }
+
+            private void on() {
+                indent++;
+                afterOn = true;
+                newline();
+                out();
+                beginLine = false;
+            }
+
+            private void misc() {
+                out();
+                if ("between".equals(lcToken)) {
+                    afterBetween = true;
+                }
+                if (afterInsert) {
+                    newline();
+                    afterInsert = false;
+                } else {
+                    beginLine = false;
+                    if ("case".equals(lcToken)) {
+                        indent++;
+                    }
+                }
+            }
+
+            private void white() {
+                if (!beginLine) {
+                    result.append(" ");
+                }
+            }
+
+            private void updateOrInsertOrDelete() {
+                out();
+                indent++;
+                beginLine = false;
+                if ("update".equals(lcToken)) {
+                    newline();
+                }
+                if ("insert".equals(lcToken)) {
+                    afterInsert = true;
+                }
+            }
+
+            private void select() {
+                out();
+                indent++;
+                newline();
+                parenCounts.addLast(parensSinceSelect);
+                afterByOrFromOrSelects.addLast(afterByOrSetOrFromOrSelect);
+                parensSinceSelect = 0;
+                afterByOrSetOrFromOrSelect = true;
+            }
+
+            private void out() {
+                result.append(token);
+            }
+
+            private void endNewClause() {
+                if (!afterBeginBeforeEnd) {
+                    indent--;
+                    if (afterOn) {
+                        indent--;
+                        afterOn = false;
+                    }
+                    newline();
+                }
+                out();
+                if (!"union".equals(lcToken)) {
+                    indent++;
+                }
+                newline();
+                afterBeginBeforeEnd = false;
+                afterByOrSetOrFromOrSelect = "by".equals(lcToken)
+                    || "set".equals(lcToken)
+                    || "from".equals(lcToken);
+            }
+
+            private void beginNewClause() {
+                if (!afterBeginBeforeEnd) {
+                    if (afterOn) {
+                        indent--;
+                        afterOn = false;
+                    }
+                    indent--;
+                    newline();
+                }
+                out();
+                beginLine = false;
+                afterBeginBeforeEnd = true;
+            }
+
+            private void values() {
+                indent--;
+                newline();
+                out();
+                indent++;
+                newline();
+                afterValues = true;
+            }
+
+            private void closeParen() {
+                parensSinceSelect--;
+                if (parensSinceSelect < 0) {
+                    indent--;
+                    parensSinceSelect = parenCounts.removeLast();
+                    afterByOrSetOrFromOrSelect = afterByOrFromOrSelects.removeLast();
+                }
+                if (inFunction > 0) {
+                    inFunction--;
+                    out();
+                } else {
+                    if (!afterByOrSetOrFromOrSelect) {
+                        indent--;
+                        newline();
+                    }
+                    out();
+                }
+                beginLine = false;
+            }
+
+            private void openParen() {
+                if (isFunctionName(lastToken) || inFunction > 0) {
+                    inFunction++;
+                }
+                beginLine = false;
+                if (inFunction > 0) {
+                    out();
+                } else {
+                    out();
+                    if (!afterByOrSetOrFromOrSelect) {
+                        indent++;
+                        newline();
+                        beginLine = true;
+                    }
+                }
+                parensSinceSelect++;
+            }
+
+            private static boolean isFunctionName(String tok) {
+                final char begin = tok.charAt(0);
+                final boolean isIdentifier = Character.isJavaIdentifierStart(begin) || '"' == begin;
+                return isIdentifier &&
+                    !LOGICAL.contains(tok) &&
+                    !END_CLAUSES.contains(tok) &&
+                    !QUANTIFIERS.contains(tok) &&
+                    !DML.contains(tok) &&
+                    !MISC.contains(tok);
+            }
+
+            private static boolean isWhitespace(String token) {
+                return WHITESPACE.contains(token);
+            }
+
+            private void newline() {
+                result.append("\n");
+                for (int i = 0; i < indent; i++) {
+                    result.append(INDENT_STRING);
+                }
+                beginLine = true;
+            }
         }
-
-        return value.replace("$", "\\$");
-
     }
-
-    private String toStr(Object o) {
-        return toStr(o, "");
-    }
-
-    private String toStr(Object str, String defaultValue) {
-        if (null == str) {
-            return defaultValue;
-        }
-        return String.valueOf(str);
-    }
-
 }
