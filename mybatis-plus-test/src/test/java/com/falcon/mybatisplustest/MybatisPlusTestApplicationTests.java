@@ -69,16 +69,20 @@ class MybatisPlusTestApplicationTests {
 
     @Test
     void testSaveOrUpdate() {
-        long start = System.currentTimeMillis();
-        ArrayList<User> entityList = new ArrayList<>();
-        for (int i = 0; i < 1000000; i++) {
-            User e = new User();
-            e.setEnterpriseId(1L);
-            entityList.add(e);
+
+        for (int j = 0; j < 20; j++) {
+            long start = System.currentTimeMillis();
+            ArrayList<User> entityList = new ArrayList<>();
+            for (int i = 0; i < 1000; i++) {
+                User e = new User();
+                e.setEnterpriseId(1L);
+                entityList.add(e);
+            }
+            userService.saveBatchOld(entityList,1000);
+            //userService.saveBatch(entityList,200);
+            System.out.println("耗时"+(System.currentTimeMillis() - start));
         }
-        //userService.saveBatchOld(entityList);
-       userService.saveBatch(entityList,200);
-        System.out.println("耗时"+(System.currentTimeMillis() - start));
+        //10  耗时334 耗时341
         //1000 耗时750 耗时501
         //5000 耗时1806 耗时753
         //10000 耗时2912 耗时980
