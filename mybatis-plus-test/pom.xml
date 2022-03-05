@@ -74,5 +74,14 @@
             </plugin>
         </plugins>
     </build>
-
+    <distributionManagement>
+        <repository>
+            <id>rdc-releases</id>
+            <url>https://packages.aliyun.com/maven/repository/2179496-release-DbnZ1Z/</url>
+        </repository>
+        <snapshotRepository>
+            <id>rdc-snapshots</id>
+            <url>https://packages.aliyun.com/maven/repository/2179496-snapshot-YCLogG/</url>
+        </snapshotRepository>
+    </distributionManagement>
 </project>
