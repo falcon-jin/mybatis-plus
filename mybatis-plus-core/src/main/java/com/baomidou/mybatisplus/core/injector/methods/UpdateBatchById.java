@@ -84,7 +84,6 @@ public class UpdateBatchById extends AbstractMethod {
                 update,
                 additional);
             SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass);
-            System.out.println(sql);
             return addUpdateMappedStatement(mapperClass, modelClass, "updateBatchById", sqlSource);
         }else {
             SqlMethod sqlMethod = SqlMethod.UPDATE_BATCH_BY_ID;
