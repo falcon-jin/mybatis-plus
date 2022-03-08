@@ -66,7 +66,15 @@ class MybatisPlusTestApplicationTests {
         System.out.println(userPage);
 
     }
+    @Test
+    void testUpdateBeach() {
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.last(" limit 2");
+        List<User> users = userMapper.selectList(queryWrapper);
+        int i = userMapper.updateBatchById(users);
+        System.out.println(i);
 
+    }
     @Test
     void testSaveOrUpdate() {
 

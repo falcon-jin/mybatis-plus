@@ -8,6 +8,7 @@ import java.util.Map;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.injector.methods.InsertBatch;
+import com.baomidou.mybatisplus.core.injector.methods.UpdateBatchById;
 import org.apache.ibatis.annotations.Param;
 
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
@@ -86,7 +87,7 @@ public interface BaseMapper<T> extends Mapper<T> {
      * @param entity 实体对象
      */
     int updateById(@Param(Constants.ENTITY) T entity);
-
+    int updateBatchById(@Param("recordList") List<T> recordList);
     /**
      * 根据 whereEntity 条件，更新记录
      *
