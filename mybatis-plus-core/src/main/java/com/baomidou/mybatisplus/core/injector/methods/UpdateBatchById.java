@@ -14,6 +14,7 @@ import org.apache.ibatis.mapping.SqlSource;
 
 import javax.sql.DataSource;
 import java.sql.SQLException;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -97,12 +98,12 @@ public class UpdateBatchById extends AbstractMethod {
             for (TableFieldInfo tableFieldInfo : fieldList) {
                 String str = StringUtils.underlineToCamel(tableFieldInfo.getColumn());
                 proSb.append("#{item.").append(str).append("}");
-                if(tableFieldInfo.getJdbcType().TYPE_CODE==93){
+                if( Date.class.isAssignableFrom(tableFieldInfo.getPropertyType())){
                     proSb.append("::timestamp");
                 }
-                if(tableFieldInfo.getJdbcType().TYPE_CODE==92){
+              /*  if(tableFieldInfo.getJdbcType().TYPE_CODE==92){
                     proSb.append("::time");
-                }
+                }*/
 
                 proSb.append(",");
                 fieldsSb.append(tableFieldInfo.getColumn()).append(",");
