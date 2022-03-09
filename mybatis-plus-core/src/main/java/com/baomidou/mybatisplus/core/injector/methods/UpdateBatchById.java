@@ -96,7 +96,15 @@ public class UpdateBatchById extends AbstractMethod {
             fieldsSb.append(tableInfo.getKeyColumn()).append(",");
             for (TableFieldInfo tableFieldInfo : fieldList) {
                 String str = StringUtils.underlineToCamel(tableFieldInfo.getColumn());
-                proSb.append("#{item.").append(str).append("}").append(",");
+                proSb.append("#{item.").append(str).append("}");
+                if(tableFieldInfo.getJdbcType().TYPE_CODE==93){
+                    proSb.append("::timestamp");
+                }
+                if(tableFieldInfo.getJdbcType().TYPE_CODE==92){
+                    proSb.append("::time");
+                }
+
+                proSb.append(",");
                 fieldsSb.append(tableFieldInfo.getColumn()).append(",");
                 updateSb.append(tableFieldInfo.getColumn()).append(" = temp.").append(tableFieldInfo.getColumn()).append(",");
             }
@@ -123,7 +131,6 @@ public class UpdateBatchById extends AbstractMethod {
                 tableName,
                 additional);
             SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass);
-            System.out.println(sql);
             return addUpdateMappedStatement(mapperClass, modelClass, getMethod(sqlMethod), sqlSource);
         }
 
