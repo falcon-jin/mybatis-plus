@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
      <groupId>com.falcon</groupId>
     <artifactId>mybatis-plus-boot-starter</artifactId>
-    <version>1.0</version>
+    <version>1.0-SNAPSHOT</version>
     <name>mybatis-plus-boot-starter</name>
     <description>An enhanced toolkit of Mybatis to simplify development.</description>
     <properties>
@@ -36,12 +36,12 @@
         <dependency>
             <groupId>com.falcon</groupId>
             <artifactId>mybatis-plus-core</artifactId>
-            <version>1.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
         <dependency>
             <groupId>com.falcon</groupId>
             <artifactId>mybatis-plus-annotation</artifactId>
-            <version>1.0</version>
+            <version>1.0-SNAPSHOT</version>
         </dependency>
 
         <dependency>
@@ -103,7 +103,7 @@
         <dependency>
             <groupId>com.falcon</groupId>
             <artifactId>mybatis-plus-extension</artifactId>
-            <version>1.0</version>
+            <version>1.0-SNAPSHOT</version>
             <scope>compile</scope>
         </dependency>
     </dependencies>

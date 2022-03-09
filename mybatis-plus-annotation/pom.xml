@@ -3,7 +3,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.falcon</groupId>
     <artifactId>mybatis-plus-annotation</artifactId>
-    <version>1.0</version>
+    <version>1.0-SNAPSHOT</version>
     <name>mybatis-plus-annotation</name>
     <description>An enhanced toolkit of Mybatis to simplify development.</description>
     <properties>
