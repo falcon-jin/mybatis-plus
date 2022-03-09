@@ -98,7 +98,7 @@ public class UpdateBatchById extends AbstractMethod {
                 String str = StringUtils.underlineToCamel(tableFieldInfo.getColumn());
                 proSb.append("#{item.").append(str).append("}").append(",");
                 fieldsSb.append(tableFieldInfo.getColumn()).append(",");
-                updateSb.append(tableFieldInfo.getColumn()).append(" = temp.").append(str).append(",");
+                updateSb.append(tableFieldInfo.getColumn()).append(" = temp.").append(tableFieldInfo.getColumn()).append(",");
             }
             String props = proSb.toString();
             if(props.endsWith(",")){
