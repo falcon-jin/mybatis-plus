@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,10 +34,7 @@ import com.baomidou.mybatisplus.extension.toolkit.SqlHelper;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.Serializable;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -293,6 +290,16 @@ public interface IService<T> {
     }
 
     /**
+     * 根据 ID 查询，返回一个Option对象
+     *
+     * @param id 主键ID
+     * @return {@link Optional}
+     */
+    default Optional<T> getOptById(Serializable id) {
+        return Optional.ofNullable(getBaseMapper().selectById(id));
+    }
+
+    /**
      * 查询（根据ID 批量查询）
      *
      * @param idList 主键ID列表
@@ -321,12 +328,32 @@ public interface IService<T> {
     }
 
     /**
+     * 根据 Wrapper，查询一条记录 <br/>
+     * <p>结果集，如果是多个会抛出异常，随机取一条加上限制条件 wrapper.last("LIMIT 1")</p>
+     *
+     * @param queryWrapper 实体对象封装操作类 {@link com.baomidou.mybatisplus.core.conditions.query.QueryWrapper}
+     * @return {@link Optional} 返回一个Optional对象
+     */
+    default Optional<T> getOneOpt(Wrapper<T> queryWrapper) {
+        return getOneOpt(queryWrapper, true);
+    }
+
+    /**
      * 根据 Wrapper，查询一条记录
      *
      * @param queryWrapper 实体对象封装操作类 {@link com.baomidou.mybatisplus.core.conditions.query.QueryWrapper}
      * @param throwEx      有多个 result 是否抛出异常
      */
     T getOne(Wrapper<T> queryWrapper, boolean throwEx);
+
+    /**
+     * 根据 Wrapper，查询一条记录
+     *
+     * @param queryWrapper 实体对象封装操作类 {@link com.baomidou.mybatisplus.core.conditions.query.QueryWrapper}
+     * @param throwEx      有多个 result 是否抛出异常
+     * @return {@link Optional} 返回一个Optional对象
+     */
+    Optional<T> getOneOpt(Wrapper<T> queryWrapper, boolean throwEx);
 
     /**
      * 根据 Wrapper，查询一条记录
@@ -342,6 +369,15 @@ public interface IService<T> {
      * @param mapper       转换函数
      */
     <V> V getObj(Wrapper<T> queryWrapper, Function<? super Object, V> mapper);
+
+    /**
+     * 查询指定条件是否存在数据
+     *
+     * @see Wrappers#emptyWrapper()
+     */
+    default boolean exists(Wrapper<T> queryWrapper) {
+        return getBaseMapper().exists(queryWrapper);
+    }
 
     /**
      * 查询总记录数
@@ -371,12 +407,35 @@ public interface IService<T> {
     }
 
     /**
+     * 查询列表
+     *
+     * @param page         分页条件
+     * @param queryWrapper queryWrapper 实体对象封装操作类 {@link com.baomidou.mybatisplus.core.conditions.query.QueryWrapper}
+     * @return 列表数据
+     * @since 3.5.3.2
+     */
+    default List<T> list(IPage<T> page, Wrapper<T> queryWrapper) {
+        return getBaseMapper().selectList(page, queryWrapper);
+    }
+
+    /**
      * 查询所有
      *
      * @see Wrappers#emptyWrapper()
      */
     default List<T> list() {
         return list(Wrappers.emptyWrapper());
+    }
+
+    /**
+     * 分页查询单表数据
+     *
+     * @param page 分页条件
+     * @return 列表数据
+     * @since 3.5.3.2
+     */
+    default List<T> list(IPage<T> page) {
+        return list(page, Wrappers.emptyWrapper());
     }
 
     /**
@@ -409,6 +468,19 @@ public interface IService<T> {
     }
 
     /**
+     * 查询列表
+     *
+     * @param page         分页条件
+     * @param queryWrapper 实体对象封装操作类 {@link com.baomidou.mybatisplus.core.conditions.query.QueryWrapper}
+     * @return 列表数据
+     * @since 3.5.3.2
+     */
+    default List<Map<String, Object>> listMaps(IPage<? extends Map<String, Object>> page, Wrapper<T> queryWrapper) {
+        return getBaseMapper().selectMaps(page, queryWrapper);
+    }
+
+
+    /**
      * 查询所有列表
      *
      * @see Wrappers#emptyWrapper()
@@ -416,6 +488,17 @@ public interface IService<T> {
     default List<Map<String, Object>> listMaps() {
         return listMaps(Wrappers.emptyWrapper());
     }
+
+    /**
+     * 查询列表
+     *
+     * @param page 分页条件
+     * @see Wrappers#emptyWrapper()
+     */
+    default List<Map<String, Object>> listMaps(IPage<? extends Map<String, Object>> page) {
+        return listMaps(page, Wrappers.emptyWrapper());
+    }
+
 
     /**
      * 查询全部记录
@@ -519,7 +602,18 @@ public interface IService<T> {
      * @return LambdaQueryWrapper 的包装类
      */
     default LambdaQueryChainWrapper<T> lambdaQuery() {
-        return ChainWrappers.lambdaQueryChain(getBaseMapper());
+        return ChainWrappers.lambdaQueryChain(getBaseMapper(), getEntityClass());
+    }
+
+    /**
+     * 链式查询 lambda 式
+     * <p>注意：不支持 Kotlin </p>
+     *
+     * @param entity 实体对象
+     * @return LambdaQueryWrapper 的包装类
+     */
+    default LambdaQueryChainWrapper<T> lambdaQuery(T entity) {
+        return ChainWrappers.lambdaQueryChain(getBaseMapper(), entity);
     }
 
     /**
@@ -566,9 +660,16 @@ public interface IService<T> {
      * 根据updateWrapper尝试更新，否继续执行saveOrUpdate(T)方法
      * 此次修改主要是减少了此项业务代码的代码量（存在性验证之后的saveOrUpdate操作）
      * </p>
+     * <p>
+     * 该方法不推荐在多线程并发下使用，并发可能存在间隙锁的问题，可以采用先查询后判断是否更新或保存。
+     * </p>
+     * <p>
+     * 该方法存在安全隐患将在后续大版本删除
+     * </p>
      *
      * @param entity 实体对象
      */
+    @Deprecated
     default boolean saveOrUpdate(T entity, Wrapper<T> updateWrapper) {
         return update(entity, updateWrapper) || saveOrUpdate(entity);
     }

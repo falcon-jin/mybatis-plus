@@ -24,12 +24,21 @@ import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.core.toolkit.support.SFunction;
+import com.baomidou.mybatisplus.extension.plugins.MybatisPlusInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.DataChangeRecorderInnerInterceptor;
+import com.baomidou.mybatisplus.extension.plugins.inner.InnerInterceptor;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.test.h2.entity.H2User;
 import com.baomidou.mybatisplus.test.h2.enums.AgeEnum;
+import com.baomidou.mybatisplus.test.h2.mapper.H2StudentMapper;
 import com.baomidou.mybatisplus.test.h2.service.IH2UserService;
 import net.sf.jsqlparser.parser.CCJSqlParserUtil;
 import net.sf.jsqlparser.statement.select.Select;
+import org.apache.ibatis.exceptions.TooManyResultsException;
+import org.apache.ibatis.plugin.Interceptor;
+import org.apache.ibatis.session.Configuration;
+import org.apache.ibatis.session.SqlSessionFactory;
+import org.apache.ibatis.session.defaults.DefaultSqlSessionFactory;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +53,13 @@ import java.util.*;
 
 /**
  * Mybatis Plus H2 Junit Test
+ * JDK 8 run test:
+ * <p>"Error: Could not create the Java Virtual Machine."</p>
+ * <p>Go to build.gradle: remove below configuration:</p>
+ * <p>
+ * //  jvmArgs += ["--add-opens", "java.base/java.lang=ALL-UNNAMED",
+ * //                    "--add-opens", "java.base/java.lang.invoke=ALL-UNNAMED"]
+ * </p>
  *
  * @author Caratacus
  * @since 2017/4/1
@@ -55,6 +71,27 @@ class H2UserTest extends BaseTest {
 
     @Autowired
     protected IH2UserService userService;
+    @Autowired
+    SqlSessionFactory sqlSessionFactory;
+
+    @Autowired
+    private H2StudentMapper h2StudentMapper;
+
+    public void initBatchLimitation(int limitation) {
+        if (sqlSessionFactory instanceof DefaultSqlSessionFactory) {
+            Configuration configuration = sqlSessionFactory.getConfiguration();
+            for (Interceptor interceptor : configuration.getInterceptors()) {
+                if (interceptor instanceof MybatisPlusInterceptor) {
+                    List<InnerInterceptor> innerInterceptors = ((MybatisPlusInterceptor) interceptor).getInterceptors();
+                    for (InnerInterceptor innerInterceptor : innerInterceptors) {
+                        if (innerInterceptor instanceof DataChangeRecorderInnerInterceptor) {
+                            ((DataChangeRecorderInnerInterceptor) innerInterceptor).setBatchUpdateLimit(limitation).openBatchUpdateLimitation();
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     @Test
     @Order(1)
@@ -88,6 +125,17 @@ class H2UserTest extends BaseTest {
     @Order(6)
     void testSelectLambdaById() {
         H2User h2User = userService.getOne(Wrappers.<H2User>lambdaQuery().eq(H2User::getTestId, 101));
+        Assertions.assertNotNull(h2User);
+    }
+
+
+    @Test
+    @Order(7)
+    void testLambdaTypeHandler() {
+        // 演示 json 格式 Wrapper TypeHandler 查询
+        H2User h2User = userService.getOne(Wrappers.<H2User>lambdaQuery()
+            .apply("name={0,typeHandler=" + H2userNameJsonTypeHandler.class.getCanonicalName() + "}",
+                "{\"id\":101,\"name\":\"Tomcat\"}"));
         Assertions.assertNotNull(h2User);
     }
 
@@ -231,7 +279,24 @@ class H2UserTest extends BaseTest {
             System.out.println(u.getName() + "," + u.getAge() + "," + u.getVersion());
             Assertions.assertEquals(u.getPrice().setScale(2, RoundingMode.HALF_UP).intValue(), BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP).intValue(), "all records should be updated");
         }
+        try {
+            initBatchLimitation(3);
+            userService.update(new H2User().setPrice(BigDecimal.ZERO), null);
+            Assertions.fail("SHOULD NOT REACH HERE");
+        } catch (Exception e) {
+            e.printStackTrace();
+            Assertions.assertTrue(checkIsDataUpdateLimitationException(e));
+        }
+    }
 
+    private boolean checkIsDataUpdateLimitationException(Throwable e) {
+        if (e instanceof DataChangeRecorderInnerInterceptor.DataUpdateLimitationException) {
+            return true;
+        }
+        if (e.getCause() == null) {
+            return false;
+        }
+        return checkIsDataUpdateLimitationException(e.getCause());
     }
 
     @Test
@@ -545,7 +610,7 @@ class H2UserTest extends BaseTest {
 //        userService.removeById("100000");
         userService.removeById(h2User);
         userService.removeByIds(Arrays.asList(10000L, h2User));
-        userService.removeByIds(Arrays.asList(10000L, h2User),false);
+        userService.removeByIds(Arrays.asList(10000L, h2User), false);
     }
 
     @Test
@@ -559,6 +624,14 @@ class H2UserTest extends BaseTest {
     }
 
     @Test
+    void testPageNegativeSize() {
+        Page page = Page.of(1, -1);
+        userService.lambdaQuery().page(page);
+        Assertions.assertEquals(page.getTotal(), 0);
+        Assertions.assertEquals(userService.lambdaQuery().list(Page.of(1, -1, false)).size(), page.getRecords().size());
+    }
+
+    @Test
     void testDeleteByFill() {
         H2User h2User = new H2User(3L, "test");
         userService.removeById(1L);
@@ -568,11 +641,189 @@ class H2UserTest extends BaseTest {
         userService.removeById(h2User, true);
         userService.removeById(h2User, false);
         userService.removeBatchByIds(Arrays.asList(1L, 2L, h2User));
-        userService.removeBatchByIds(Arrays.asList(1L, 2L, h2User),2);
+        userService.removeBatchByIds(Arrays.asList(1L, 2L, h2User), 2);
         userService.removeBatchByIds(Arrays.asList(1L, 2L, h2User), true);
         userService.removeBatchByIds(Arrays.asList(1L, 2L, h2User), false);
-        userService.removeBatchByIds(Arrays.asList(1L, 2L, h2User),2,true);
-        userService.removeBatchByIds(Arrays.asList(1L, 2L, h2User),2,false);
+        userService.removeBatchByIds(Arrays.asList(1L, 2L, h2User), 2, true);
+        userService.removeBatchByIds(Arrays.asList(1L, 2L, h2User), 2, false);
+    }
+
+    @Test
+    @Order(25)
+    void testServiceImplInnerLambdaQueryConstructorSetEntity() {
+        H2User condition = new H2User();
+        condition.setName("Tomcat");
+        H2User user = userService.lambdaQuery(condition).one();
+        Assertions.assertNotNull(user);
+        Assertions.assertTrue("Tomcat".equals(user.getName()));
+        H2User h2User = userService.lambdaQuery().setEntity(condition).one();
+        Assertions.assertNotNull(h2User);
+        Assertions.assertTrue("Tomcat".equals(h2User.getName()));
+    }
+
+    @Test
+    @Order(26)
+    void testServiceGetOptById() {
+        H2User user = new H2User(1L, "Evan");
+        userService.save(user);
+        Optional<H2User> optional = userService.getOptById(1L);
+        optional.ifPresent(u -> log(u.toString()));
+    }
+
+    @Test
+    @Order(27)
+    void testServiceGetOneOpt() {
+        userService.getOneOpt(Wrappers.<H2User>lambdaQuery().eq(H2User::getName, "David"))
+            .ifPresent(u -> log(u.toString()));
+    }
+
+    @Test
+    @Order(28)
+    void testServiceGetOneOptThrowEx() {
+        userService.getOneOpt(new LambdaQueryWrapper<H2User>().eq(H2User::getName, "test1"), false)
+            .ifPresent(u -> log(u.toString()));
+
+        userService.getOneOpt(new LambdaQueryWrapper<H2User>().eq(H2User::getName, "test"), false)
+            .ifPresent(u -> log(u.toString()));
+
+        // 异常情况
+        Assertions.assertThrows(TooManyResultsException.class, () -> userService.getOneOpt(Wrappers.<H2User>lambdaQuery()
+            .like(H2User::getName, "tes")));
+    }
+
+    @Test
+    void testInsertFill() {
+        H2User h2User;
+        h2User = new H2User("insertFillByCustomMethod1", AgeEnum.ONE);
+        h2StudentMapper.insertFillByCustomMethod1(h2User);
+        Assertions.assertNotNull(h2User.getTestType());
+
+        h2User = new H2User("insertFillByCustomMethod2", AgeEnum.ONE);
+        h2StudentMapper.insertFillByCustomMethod2(h2User);
+        Assertions.assertNotNull(h2User.getTestType());
+
+        h2User = new H2User("insertFillByCustomMethod3", AgeEnum.ONE);
+        h2StudentMapper.insertFillByCustomMethod3(h2User, "fillByCustomMethod3");
+        Assertions.assertNotNull(h2User.getTestType());
+
+        List<H2User> list;
+        list = Arrays.asList(new H2User("insertFillByCustomMethod4-1", AgeEnum.ONE), new H2User("insertFillByCustomMethod4-2", AgeEnum.ONE));
+        h2StudentMapper.insertFillByCustomMethod4(list);
+        list.forEach(user -> Assertions.assertNotNull(user.getTestType()));
+
+        list = Arrays.asList(new H2User("insertFillByCustomMethod5-1", AgeEnum.ONE), new H2User("insertFillByCustomMethod5-2", AgeEnum.ONE));
+        h2StudentMapper.insertFillByCustomMethod5(list);
+        list.forEach(user -> Assertions.assertNotNull(user.getTestType()));
+
+        list = Arrays.asList(new H2User("insertFillByCustomMethod6-1", AgeEnum.ONE), new H2User("insertFillByCustomMethod6-2", AgeEnum.ONE));
+        h2StudentMapper.insertFillByCustomMethod6(list);
+        list.forEach(user -> Assertions.assertNotNull(user.getTestType()));
+
+        list = Arrays.asList(new H2User("insertFillByCustomMethod7-1", AgeEnum.ONE), new H2User("insertFillByCustomMethod7-2", AgeEnum.ONE));
+        h2StudentMapper.insertFillByCustomMethod7(list);
+        list.forEach(user -> Assertions.assertNotNull(user.getTestType()));
+
+        H2User[] h2Users;
+        h2Users = new H2User[]{new H2User("insertFillByCustomMethod8-1", AgeEnum.ONE), new H2User("insertFillByCustomMethod8-2", AgeEnum.ONE)};
+        h2StudentMapper.insertFillByCustomMethod8(h2Users);
+        Arrays.stream(h2Users).forEach(user -> Assertions.assertNotNull(user.getTestType()));
+
+        h2Users = new H2User[]{new H2User("insertFillByCustomMethod9-1", AgeEnum.ONE), new H2User("insertFillByCustomMethod9-2", AgeEnum.ONE)};
+        h2StudentMapper.insertFillByCustomMethod9(h2Users);
+        Arrays.stream(h2Users).forEach(user -> Assertions.assertNotNull(user.getTestType()));
+
+        Map<String, Object> map;
+        h2User = new H2User("insertFillByCustomMethod10", AgeEnum.ONE);
+        map = new HashMap<>();
+        map.put("et", h2User);
+        h2StudentMapper.insertFillByCustomMethod10(map);
+        Assertions.assertNotNull(h2User.getTestType());
+
+        list = Arrays.asList(new H2User("insertFillByCustomMethod11-1", AgeEnum.ONE), new H2User("insertFillByCustomMethod11-2", AgeEnum.ONE));
+        map = new HashMap<>();
+        map.put("list", list);
+        h2StudentMapper.insertFillByCustomMethod11(map);
+        list.forEach(user -> Assertions.assertNotNull(user.getTestType()));
+
+        list = Arrays.asList(new H2User("insertFillByCustomMethod12-1", AgeEnum.ONE), new H2User("insertFillByCustomMethod12-2", AgeEnum.ONE));
+        map = new HashMap<>();
+        map.put("coll", list);
+        h2StudentMapper.insertFillByCustomMethod12(map);
+        list.forEach(user -> Assertions.assertNotNull(user.getTestType()));
+
+        h2Users = new H2User[]{new H2User("insertFillByCustomMethod13-1", AgeEnum.ONE), new H2User("insertFillByCustomMethod13-2", AgeEnum.ONE)};
+        map = new HashMap<>();
+        map.put("array", h2Users);
+        h2StudentMapper.insertFillByCustomMethod13(map);
+        list.forEach(user -> Assertions.assertNotNull(user.getTestType()));
+    }
+
+    @Test
+    void testUpdateFill() {
+        Map<String, Object> map;
+        H2User h2User;
+        h2User = new H2User();
+        map = new HashMap<>();
+        map.put("et", h2User);
+        map.put("list", Arrays.asList(1L, 2L, 3L));
+        h2StudentMapper.updateFillByCustomMethod1(map);
+        Assertions.assertNotNull(h2User.getLastUpdatedDt());
+
+        h2User = new H2User();
+        h2StudentMapper.updateFillByCustomMethod2(Arrays.asList(1L, 2L, 3L), h2User);
+        Assertions.assertNotNull(h2User.getLastUpdatedDt());
+
+        h2User = new H2User();
+        h2StudentMapper.updateFillByCustomMethod3(Arrays.asList(1L, 2L, 3L), h2User);
+        Assertions.assertNull(h2User.getLastUpdatedDt());
+
+        h2User = new H2User();
+        h2StudentMapper.updateFillByCustomMethod4(Arrays.asList(1L, 2L, 3L), h2User);
+        Assertions.assertNotNull(h2User.getLastUpdatedDt());
+
+    }
+
+    @Test
+    void testListMapsByPage() {
+        Assertions.assertEquals(userService.listMaps().size(), userService.count());
+        Assertions.assertEquals(userService.listMaps(new Page<>(1, 2)).size(), userService.page(new Page<>(1, 2)).getRecords().size());
+        Assertions.assertEquals(userService.listMaps(new Page<>(2, 2)).size(), userService.page(new Page<>(2, 2)).getRecords().size());
+
+        Assertions.assertEquals(
+            userService.pageMaps(new Page<>(1, 2, false)).getRecords().size(),
+            userService.listMaps(new Page<>(1, 2, false)).size()
+        );
+        Assertions.assertEquals(
+            userService.pageMaps(new Page<>(2, 2, false)).getRecords().size(),
+            userService.listMaps(new Page<>(2, 2, false)).size()
+        );
+
+        Assertions.assertEquals(
+            userService.pageMaps(new Page<>(1, 2, false), Wrappers.emptyWrapper()).getRecords().size(),
+            userService.listMaps(new Page<>(1, 2, false), Wrappers.emptyWrapper()).size()
+        );
+        Assertions.assertEquals(
+            userService.pageMaps(new Page<>(2, 2, false), Wrappers.emptyWrapper()).getRecords().size(),
+            userService.listMaps(new Page<>(2, 2, false), Wrappers.emptyWrapper()).size()
+        );
+    }
+
+    @Test
+    void testListByPage() {
+        Assertions.assertEquals(userService.list().size(), userService.count());
+        Assertions.assertEquals(userService.list(new Page<>(1, 2)).size(), userService.page(new Page<>(1, 2)).getRecords().size());
+        Assertions.assertEquals(userService.list(new Page<>(2, 2)).size(), userService.page(new Page<>(2, 2)).getRecords().size());
+        Assertions.assertEquals(
+            userService.list(new Page<>(1, 2, false), Wrappers.emptyWrapper()).size(),
+            userService.page(new Page<>(1, 2, false), Wrappers.emptyWrapper()).getRecords().size()
+        );
+
+        List<H2User> list = userService.list(new Page<>(2, 2, false));
+
+        Assertions.assertEquals(
+            userService.list(new Page<>(2, 2, false), Wrappers.emptyWrapper()).size(),
+            userService.page(new Page<>(2, 2, false), Wrappers.emptyWrapper()).getRecords().size()
+        );
     }
 
 }

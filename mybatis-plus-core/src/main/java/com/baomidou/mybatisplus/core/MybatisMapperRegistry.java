@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,7 +50,7 @@ public class MybatisMapperRegistry extends MapperRegistry {
         MybatisMapperProxyFactory<T> mapperProxyFactory = (MybatisMapperProxyFactory<T>) knownMappers.get(type);
         if (mapperProxyFactory == null) {
             mapperProxyFactory = (MybatisMapperProxyFactory<T>) knownMappers.entrySet().stream()
-                .filter(t -> t.getKey().getName().equals(type.getName())).findFirst()
+                .filter(t -> t.getKey().getName().equals(type.getName())).findFirst().map(Map.Entry::getValue)
                 .orElseThrow(() -> new BindingException("Type " + type + " is not known to the MybatisPlusMapperRegistry."));
         }
         try {
@@ -69,7 +69,6 @@ public class MybatisMapperRegistry extends MapperRegistry {
      * 清空 Mapper 缓存信息
      */
     protected <T> void removeMapper(Class<T> type) {
-        // TODO
         knownMappers.entrySet().stream().filter(t -> t.getKey().getName().equals(type.getName()))
             .findFirst().ifPresent(t -> knownMappers.remove(t.getKey()));
     }

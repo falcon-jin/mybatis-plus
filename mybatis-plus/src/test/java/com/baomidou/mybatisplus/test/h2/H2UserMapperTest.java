@@ -210,7 +210,7 @@ class H2UserMapperTest extends BaseTest {
     }
 
     @Test
-    void testCountLong(){
+    void testCountLong() {
         Long count = userMapper.selectCountLong();
         System.out.println(count);
     }

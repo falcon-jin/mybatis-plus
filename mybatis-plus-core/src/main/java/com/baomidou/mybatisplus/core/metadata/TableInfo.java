@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,6 @@ import org.apache.ibatis.mapping.ResultFlag;
 import org.apache.ibatis.mapping.ResultMap;
 import org.apache.ibatis.mapping.ResultMapping;
 import org.apache.ibatis.reflection.Reflector;
-import org.apache.ibatis.reflection.SystemMetaObject;
 import org.apache.ibatis.session.Configuration;
 
 import java.lang.reflect.Constructor;
@@ -100,8 +99,12 @@ public class TableInfo implements Constants {
     private String currentNamespace;
     /**
      * MybatisConfiguration 标记 (Configuration内存地址值)
+     *
+     * @deprecated 3.5.3.2 初始化阶段可以使用一下,后期尽量避免在容器初始化完成之后再继续调用此方法
      */
     @Getter
+    @Setter(AccessLevel.NONE)
+    @Deprecated
     private Configuration configuration;
     /**
      * 是否开启下划线转驼峰
@@ -183,16 +186,6 @@ public class TableInfo implements Constants {
     private Reflector reflector;
 
     /**
-     * @param entityType 实体类型
-     * @deprecated 3.4.4 {@link #TableInfo(Configuration, Class)}
-     */
-    @Deprecated
-    public TableInfo(Class<?> entityType) {
-        this.entityType = entityType;
-        this.reflector = SystemMetaObject.NULL_META_OBJECT.getReflectorFactory().findForClass(entityType);
-    }
-
-    /**
      * @param configuration 配置对象
      * @param entityType    实体类型
      * @since 3.4.4
@@ -214,18 +207,6 @@ public class TableInfo implements Constants {
     @Deprecated
     public String getSqlStatement(String sqlMethod) {
         return currentNamespace + DOT + sqlMethod;
-    }
-
-    /**
-     * @deprecated 3.4.4 {@link #TableInfo(Configuration, Class)}
-     * 设置 Configuration
-     */
-    @Deprecated
-    void setConfiguration(Configuration configuration) {
-        Assert.notNull(configuration, "Error: You need Initialize MybatisConfiguration !");
-        this.configuration = configuration;
-        this.underCamel = configuration.isMapUnderscoreToCamelCase();
-        this.reflector = configuration.getReflectorFactory().findForClass(this.entityType);
     }
 
     /**
@@ -319,14 +300,16 @@ public class TableInfo implements Constants {
      *
      * @return sql 脚本片段
      */
-    public String getKeyInsertSqlColumn(final boolean batch, final boolean newLine) {
+    public String getKeyInsertSqlColumn(final boolean batch, final String prefix, final boolean newLine) {
         if (havePK()) {
+            final String newPrefix = prefix == null ? EMPTY : prefix;
+            final String prefixKeyProperty = newPrefix + keyProperty;
             if (idType == IdType.AUTO) {
                 if (batch) {
                     // 批量插入必须返回空自增情况下
                     return EMPTY;
                 }
-                return SqlScriptUtils.convertIf(keyColumn + COMMA, String.format("%s != null", keyProperty), newLine);
+                return SqlScriptUtils.convertIf(keyColumn + COMMA, String.format("%s != null", prefixKeyProperty), newLine);
             }
             return keyColumn + COMMA + (newLine ? NEWLINE : EMPTY);
         }
@@ -359,19 +342,20 @@ public class TableInfo implements Constants {
      */
     public String getAllInsertSqlColumnMaybeIf(final String prefix) {
         final String newPrefix = prefix == null ? EMPTY : prefix;
-        return getKeyInsertSqlColumn(false, true) + fieldList.stream().map(i -> i.getInsertSqlColumnMaybeIf(newPrefix))
+        return getKeyInsertSqlColumn(false, newPrefix, true) + fieldList.stream().map(i -> i.getInsertSqlColumnMaybeIf(newPrefix))
             .filter(Objects::nonNull).collect(joining(NEWLINE));
     }
 
     /**
      * 获取所有的查询的 sql 片段
      *
+     * @param fistAnd             首个条件是否添加 AND 关键字
      * @param ignoreLogicDelFiled 是否过滤掉逻辑删除字段
      * @param withId              是否包含 id 项
      * @param prefix              前缀
      * @return sql 脚本片段
      */
-    public String getAllSqlWhere(boolean ignoreLogicDelFiled, boolean withId, final String prefix) {
+    public String getAllSqlWhere(boolean fistAnd, boolean ignoreLogicDelFiled, boolean withId, final String prefix) {
         final String newPrefix = prefix == null ? EMPTY : prefix;
         String filedSqlScript = fieldList.stream()
             .filter(i -> {
@@ -386,7 +370,7 @@ public class TableInfo implements Constants {
         }
         String newKeyProperty = newPrefix + keyProperty;
         String keySqlScript = keyColumn + EQUALS + SqlScriptUtils.safeParam(newKeyProperty);
-        return SqlScriptUtils.convertIf(keySqlScript, String.format("%s != null", newKeyProperty), false)
+        return SqlScriptUtils.convertIf(fistAnd ? " AND " + keySqlScript : keySqlScript, String.format("%s != null", newKeyProperty), false)
             + NEWLINE + filedSqlScript;
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package com.baomidou.mybatisplus.extension.toolkit;
 
 import com.baomidou.mybatisplus.annotation.DbType;
 import com.baomidou.mybatisplus.core.toolkit.Assert;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.ExceptionUtils;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import org.apache.ibatis.executor.Executor;
@@ -49,7 +50,7 @@ public class JdbcUtils {
     public static DbType getDbType(Executor executor) {
         try {
             Connection conn = executor.getTransaction().getConnection();
-            return JDBC_DB_TYPE_CACHE.computeIfAbsent(conn.getMetaData().getURL(), k -> getDbType(k));
+            return CollectionUtils.computeIfAbsent(JDBC_DB_TYPE_CACHE, conn.getMetaData().getURL(), JdbcUtils::getDbType);
         } catch (SQLException e) {
             throw ExceptionUtils.mpe(e);
         }
@@ -84,6 +85,8 @@ public class JdbcUtils {
             return DbType.SQLITE;
         } else if (url.contains(":h2:")) {
             return DbType.H2;
+        } else if (url.contains(":lealone:")) {
+            return DbType.LEALONE;
         } else if (regexFind(":dm\\d*:", url)) {
             return DbType.DM;
         } else if (url.contains(":xugu:")) {
@@ -92,19 +95,19 @@ public class JdbcUtils {
             return DbType.KINGBASE_ES;
         } else if (url.contains(":phoenix:")) {
             return DbType.PHOENIX;
-        } else if (jdbcUrl.contains(":zenith:")) {
+        } else if (url.contains(":zenith:")) {
             return DbType.GAUSS;
-        } else if (jdbcUrl.contains(":gbase:")) {
+        } else if (url.contains(":gbase:")) {
             return DbType.GBASE;
-        } else if (jdbcUrl.contains(":gbasedbt-sqli:")) {
-            return DbType.GBASEDBT;
-        } else if (jdbcUrl.contains(":clickhouse:")) {
+        } else if (url.contains(":gbasedbt-sqli:") || url.contains(":informix-sqli:")) {
+            return DbType.GBASE_8S;
+        } else if (url.contains(":ch:") || url.contains(":clickhouse:")) {
             return DbType.CLICK_HOUSE;
-        } else if (jdbcUrl.contains(":oscar:")) {
+        } else if (url.contains(":oscar:")) {
             return DbType.OSCAR;
-        } else if (jdbcUrl.contains(":sybase:")) {
+        } else if (url.contains(":sybase:")) {
             return DbType.SYBASE;
-        } else if (jdbcUrl.contains(":oceanbase:")) {
+        } else if (url.contains(":oceanbase:")) {
             return DbType.OCEAN_BASE;
         } else if (url.contains(":highgo:")) {
             return DbType.HIGH_GO;
@@ -120,6 +123,22 @@ public class JdbcUtils {
             return DbType.IMPALA;
         } else if (url.contains(":vertica:")) {
             return DbType.VERTICA;
+        } else if (url.contains(":xcloud:")) {
+            return DbType.XCloud;
+        } else if (url.contains(":firebirdsql:")) {
+            return DbType.FIREBIRD;
+        } else if (url.contains(":redshift:")) {
+            return DbType.REDSHIFT;
+        } else if (url.contains(":opengauss:")) {
+            return DbType.OPENGAUSS;
+        } else if (url.contains(":taos:") || url.contains(":taos-rs:")) {
+            return DbType.TDENGINE;
+        } else if (url.contains(":informix")) {
+            return DbType.INFORMIX;
+        } else if (url.contains(":sinodb")) {
+            return DbType.SINODB;
+        } else if (url.contains(":uxdb:")) {
+            return DbType.UXDB;
         } else {
             logger.warn("The jdbcUrl is " + jdbcUrl + ", Mybatis Plus Cannot Read Database type or The Database's Not Supported!");
             return DbType.OTHER;

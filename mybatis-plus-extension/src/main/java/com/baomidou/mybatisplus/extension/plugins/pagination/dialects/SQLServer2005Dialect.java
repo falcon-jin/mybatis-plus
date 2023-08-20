@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,9 @@ import com.baomidou.mybatisplus.core.toolkit.StringPool;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.DialectModel;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 /**
  * SQLServer 2005 数据库分页方言
  *
@@ -27,14 +30,20 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.DialectModel;
  */
 public class SQLServer2005Dialect implements IDialect {
 
-    private static String getOrderByPart(String sql) {
-        String loweredString = sql.toLowerCase();
-        int orderByIndex = loweredString.indexOf("order by");
-        if (orderByIndex != -1) {
-            return sql.substring(orderByIndex);
-        } else {
+    private static final Pattern pattern = Pattern.compile("\\((.)*order by(.)*\\)");
+
+    public String getOrderByPart(String sql) {
+        String order_by = "order by";
+        int lastIndex = sql.toLowerCase().lastIndexOf(order_by);
+        if (lastIndex == -1) {
             return StringPool.EMPTY;
         }
+        Matcher matcher = pattern.matcher(sql);
+        if (!matcher.find()) {
+            return sql.substring(lastIndex);
+        }
+        int end = matcher.end();
+        return lastIndex < end ? StringPool.EMPTY : sql.substring(lastIndex);
     }
 
     @Override

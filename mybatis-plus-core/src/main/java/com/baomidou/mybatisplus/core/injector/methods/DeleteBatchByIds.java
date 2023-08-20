@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,7 @@ import org.apache.ibatis.mapping.SqlSource;
 public class DeleteBatchByIds extends AbstractMethod {
 
     public DeleteBatchByIds() {
-        super("deleteBatchIds");
+        this(SqlMethod.DELETE_BATCH_BY_IDS.getMethod());
     }
 
     /**
@@ -48,17 +48,17 @@ public class DeleteBatchByIds extends AbstractMethod {
         SqlMethod sqlMethod = SqlMethod.LOGIC_DELETE_BATCH_BY_IDS;
         if (tableInfo.isWithLogicDelete()) {
             sql = logicDeleteScript(tableInfo, sqlMethod);
-            SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, Object.class);
-            return addUpdateMappedStatement(mapperClass, modelClass, getMethod(sqlMethod), sqlSource);
+            SqlSource sqlSource = super.createSqlSource(configuration, sql, Object.class);
+            return addUpdateMappedStatement(mapperClass, modelClass, methodName, sqlSource);
         } else {
             sqlMethod = SqlMethod.DELETE_BATCH_BY_IDS;
             sql = String.format(sqlMethod.getSql(), tableInfo.getTableName(), tableInfo.getKeyColumn(),
                 SqlScriptUtils.convertForeach(
                     SqlScriptUtils.convertChoose("@org.apache.ibatis.type.SimpleTypeRegistry@isSimpleType(item.getClass())",
                         "#{item}", "#{item." + tableInfo.getKeyProperty() + "}"),
-                    COLLECTION, null, "item", COMMA));
-            SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, Object.class);
-            return this.addDeleteMappedStatement(mapperClass, getMethod(sqlMethod), sqlSource);
+                    COLL, null, "item", COMMA));
+            SqlSource sqlSource = super.createSqlSource(configuration, sql, Object.class);
+            return this.addDeleteMappedStatement(mapperClass, methodName, sqlSource);
         }
     }
 
@@ -72,7 +72,7 @@ public class DeleteBatchByIds extends AbstractMethod {
             sqlLogicSet(tableInfo), tableInfo.getKeyColumn(), SqlScriptUtils.convertForeach(
                 SqlScriptUtils.convertChoose("@org.apache.ibatis.type.SimpleTypeRegistry@isSimpleType(item.getClass())",
                     "#{item}", "#{item." + tableInfo.getKeyProperty() + "}"),
-                COLLECTION, null, "item", COMMA),
+                COLL, null, "item", COMMA),
             tableInfo.getLogicDeleteSql(true, true));
     }
 }

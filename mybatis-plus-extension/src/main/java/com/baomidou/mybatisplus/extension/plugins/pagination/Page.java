@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -74,15 +74,15 @@ public class Page<T> implements IPage<T> {
     @Setter
     protected boolean optimizeJoinOfCountSql = true;
     /**
-     * countId
+     * 单页分页条数限制
      */
     @Setter
-    protected String countId;
+    protected Long maxLimit;
     /**
      * countId
      */
     @Setter
-    protected Long maxLimit;
+    protected String countId;
 
     public Page() {
     }

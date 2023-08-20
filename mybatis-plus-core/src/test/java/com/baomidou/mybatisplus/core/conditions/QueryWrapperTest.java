@@ -2,8 +2,10 @@ package com.baomidou.mybatisplus.core.conditions;
 
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.exceptions.MybatisPlusException;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import org.apache.ibatis.builder.MapperBuilderAssistant;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
@@ -90,9 +92,9 @@ class QueryWrapperTest extends BaseWrapperTest {
             .or().gt("id", 1).ge("id", 1)
             .lt("id", 1).le("id", 1)
             .or().between("id", 1, 2).notBetween("id", 1, 3)
-            .like("id", 1).notLike("id", 1)
+            .like("id", 1).notLike("id", 1).notLikeLeft("id", 3).notLikeRight("id", 4)
             .or().likeLeft("id", 1).likeRight("id", 1);
-        logSqlWhere("测试 Compare 下的方法", queryWrapper, "(column1 = ? AND column0 = ? AND nullColumn IS NULL AND column1 = ? AND column0 = ? AND nullColumn IS NULL AND id = ? AND id <> ? OR id > ? AND id >= ? AND id < ? AND id <= ? OR id BETWEEN ? AND ? AND id NOT BETWEEN ? AND ? AND id LIKE ? AND id NOT LIKE ? OR id LIKE ? AND id LIKE ?)");
+        logSqlWhere("测试 Compare 下的方法", queryWrapper, "(column1 = ? AND column0 = ? AND nullColumn IS NULL AND column1 = ? AND column0 = ? AND nullColumn IS NULL AND id = ? AND id <> ? OR id > ? AND id >= ? AND id < ? AND id <= ? OR id BETWEEN ? AND ? AND id NOT BETWEEN ? AND ? AND id LIKE ? AND id NOT LIKE ? AND id NOT LIKE ? AND id NOT LIKE ? OR id LIKE ? AND id LIKE ?)");
         logParams(queryWrapper);
     }
 
@@ -163,6 +165,15 @@ class QueryWrapperTest extends BaseWrapperTest {
             .notExists("select 1 from xxx where id = {0} and name = {1}", 1, "Bob");
         logSqlWhere("testNotExistsValue", wrapper, "(a = ? AND NOT EXISTS (select 1 from xxx where id = ? and name = ?))");
         logParams(wrapper);
+    }
+
+    @Test
+    void testCheckSqlInjection() {
+        QueryWrapper qw = new QueryWrapper<Entity>().checkSqlInjection().eq("a", "b");
+        Assertions.assertEquals("WHERE (a = #{ew.paramNameValuePairs.MPGENVAL1})", qw.getCustomSqlSegment());
+
+        qw.orderByAsc("select 1 from xxx");
+        Assertions.assertThrows(MybatisPlusException.class, () -> qw.getCustomSqlSegment());
     }
 
     private List<Object> getList() {

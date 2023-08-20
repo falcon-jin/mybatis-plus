@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package com.baomidou.mybatisplus.autoconfigure;
 
 import com.baomidou.mybatisplus.core.incrementer.DefaultIdentifierGenerator;
 import com.baomidou.mybatisplus.core.incrementer.IdentifierGenerator;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.cloud.commons.util.InetUtils;
@@ -29,21 +30,14 @@ import org.springframework.context.annotation.Lazy;
  * @since 3.4.3
  */
 @Lazy
+@ConditionalOnClass(InetUtils.class)
+@ConditionalOnBean(InetUtils.class)
 @Configuration(proxyBeanMethods = false)
-@SuppressWarnings("SpringJavaInjectionPointsAutowiringInspection")
 public class IdentifierGeneratorAutoConfiguration {
 
-
-    @Configuration(proxyBeanMethods = false)
-    @ConditionalOnClass(InetUtils.class)
-    public static class InetUtilsAutoConfig {
-
-        @Bean
-        @ConditionalOnMissingBean
-        public IdentifierGenerator identifierGenerator(InetUtils inetUtils) {
-            return new DefaultIdentifierGenerator(inetUtils.findFirstNonLoopbackAddress());
-        }
-
+    @Bean
+    @ConditionalOnMissingBean
+    public IdentifierGenerator identifierGenerator(InetUtils inetUtils) {
+        return new DefaultIdentifierGenerator(inetUtils.findFirstNonLoopbackAddress());
     }
-
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -248,6 +248,40 @@ public interface Compare<Children, R> extends Serializable {
      * @return children
      */
     Children notLike(boolean condition, R column, Object val);
+
+    /**
+     * ignore
+     */
+    default Children notLikeLeft(R column, Object val) {
+        return notLikeLeft(true, column, val);
+    }
+
+    /**
+     * NOT LIKE '%值'
+     *
+     * @param condition
+     * @param column
+     * @param val
+     * @return children
+     */
+    Children notLikeLeft(boolean condition, R column, Object val);
+
+    /**
+     * ignore
+     */
+    default Children notLikeRight(R column, Object val) {
+        return notLikeRight(true, column, val);
+    }
+
+    /**
+     * NOT LIKE '值%'
+     *
+     * @param condition
+     * @param column
+     * @param val
+     * @return children
+     */
+    Children notLikeRight(boolean condition, R column, Object val);
 
     /**
      * ignore

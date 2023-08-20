@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,9 @@ package com.baomidou.mybatisplus.core.config;
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.core.handlers.AnnotationHandler;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
+import com.baomidou.mybatisplus.core.handlers.PostInitTableInfoHandler;
 import com.baomidou.mybatisplus.core.incrementer.IKeyGenerator;
 import com.baomidou.mybatisplus.core.incrementer.IdentifierGenerator;
 import com.baomidou.mybatisplus.core.injector.DefaultSqlInjector;
@@ -65,7 +67,10 @@ public class GlobalConfig implements Serializable {
     private Class<?> superMapperClass = Mapper.class;
     /**
      * 仅用于缓存 SqlSessionFactory(外部勿进行set,set了也没用)
+     *
+     * @deprecated 3.5.3.2
      */
+    @Deprecated
     private SqlSessionFactory sqlSessionFactory;
     /**
      * 缓存已注入CRUD的Mapper信息
@@ -75,6 +80,15 @@ public class GlobalConfig implements Serializable {
      * 元对象字段填充控制器
      */
     private MetaObjectHandler metaObjectHandler;
+    /**
+     * 注解控制器
+     */
+    private AnnotationHandler annotationHandler = new AnnotationHandler(){};
+    /**
+     * 参与 TableInfo 的初始化
+     */
+    private PostInitTableInfoHandler postInitTableInfoHandler = new PostInitTableInfoHandler() {
+    };
     /**
      * 主键生成器
      */
@@ -106,6 +120,15 @@ public class GlobalConfig implements Serializable {
          * @since 3.1.1
          */
         private String columnFormat;
+        /**
+         * db 表 format
+         * <p>
+         * 例: `%s`
+         * <p>
+         *
+         * @since 3.5.3.2
+         */
+        private String tableFormat;
         /**
          * entity 的字段(property)的 format,只有在 column as property 这种情况下生效
          * <p>

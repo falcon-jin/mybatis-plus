@@ -20,13 +20,13 @@ import org.apache.ibatis.session.SqlSessionFactory;
 import org.apache.ibatis.transaction.managed.ManagedTransactionFactory;
 import org.apache.ibatis.type.TypeReference;
 import org.h2.Driver;
-import org.jetbrains.annotations.Nullable;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.datasource.SimpleDriverDataSource;
 
 import javax.sql.DataSource;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -42,7 +42,6 @@ public abstract class BaseDbTest<T> extends TypeReference<T> {
 
     @SuppressWarnings("unchecked")
     public BaseDbTest() {
-        SqlRunner.DEFAULT.close();
         DataSource ds = dataSource();
         List<String> tableSql = tableSql();
         String tableDataSql = tableDataSql();
@@ -83,6 +82,8 @@ public abstract class BaseDbTest<T> extends TypeReference<T> {
             }
         }
         configuration.addMapper(mapper);
+        otherMapper().forEach(configuration::addMapper);
+
         if (CollectionUtils.isNotEmpty(interceptors)) {
             interceptors.forEach(configuration::addInterceptor);
         }
@@ -98,7 +99,7 @@ public abstract class BaseDbTest<T> extends TypeReference<T> {
         return dataSource;
     }
 
-    protected SqlSession sqlSession(@Nullable ExecutorType type) {
+    protected SqlSession sqlSession(ExecutorType type) {
         return sqlSessionFactory.openSession(type);
     }
 
@@ -154,5 +155,9 @@ public abstract class BaseDbTest<T> extends TypeReference<T> {
 
     protected Consumer<Configuration> consumer() {
         return null;
+    }
+
+    protected List<Class<?>> otherMapper() {
+        return Collections.emptyList();
     }
 }

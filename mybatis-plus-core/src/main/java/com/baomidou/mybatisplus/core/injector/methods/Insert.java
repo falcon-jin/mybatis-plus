@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,6 +21,7 @@ import com.baomidou.mybatisplus.core.injector.AbstractMethod;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
 import com.baomidou.mybatisplus.core.toolkit.StringUtils;
+import com.baomidou.mybatisplus.core.toolkit.sql.SqlInjectionUtils;
 import com.baomidou.mybatisplus.core.toolkit.sql.SqlScriptUtils;
 import org.apache.ibatis.executor.keygen.Jdbc3KeyGenerator;
 import org.apache.ibatis.executor.keygen.KeyGenerator;
@@ -37,7 +38,7 @@ import org.apache.ibatis.mapping.SqlSource;
 public class Insert extends AbstractMethod {
 
     public Insert() {
-        super(SqlMethod.INSERT_ONE.getMethod());
+        this(SqlMethod.INSERT_ONE.getMethod());
     }
 
     /**
@@ -64,17 +65,16 @@ public class Insert extends AbstractMethod {
                 /* 自增主键 */
                 keyGenerator = Jdbc3KeyGenerator.INSTANCE;
                 keyProperty = tableInfo.getKeyProperty();
+                // 去除转义符
+                keyColumn = SqlInjectionUtils.removeEscapeCharacter(tableInfo.getKeyColumn());
+            } else if (null != tableInfo.getKeySequence()) {
+                keyGenerator = TableInfoHelper.genKeyGenerator(methodName, tableInfo, builderAssistant);
+                keyProperty = tableInfo.getKeyProperty();
                 keyColumn = tableInfo.getKeyColumn();
-            } else {
-                if (null != tableInfo.getKeySequence()) {
-                    keyGenerator = TableInfoHelper.genKeyGenerator(this.methodName, tableInfo, builderAssistant);
-                    keyProperty = tableInfo.getKeyProperty();
-                    keyColumn = tableInfo.getKeyColumn();
-                }
             }
         }
         String sql = String.format(sqlMethod.getSql(), tableInfo.getTableName(), columnScript, valuesScript);
-        SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass);
-        return this.addInsertMappedStatement(mapperClass, modelClass, getMethod(sqlMethod), sqlSource, keyGenerator, keyProperty, keyColumn);
+        SqlSource sqlSource = super.createSqlSource(configuration, sql, modelClass);
+        return this.addInsertMappedStatement(mapperClass, modelClass, methodName, sqlSource, keyGenerator, keyProperty, keyColumn);
     }
 }

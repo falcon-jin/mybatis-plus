@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,6 +38,7 @@ import org.apache.ibatis.mapping.SqlCommandType;
 import java.lang.reflect.Field;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.Map;
@@ -169,7 +170,7 @@ public class OptimisticLockerInnerInterceptor implements InnerInterceptor {
 
     private void setVersionByWrapper(Map<String, Object> map, String msId) {
         Object ew = map.get(Constants.WRAPPER);
-        if (null != ew && ew instanceof AbstractWrapper && ew instanceof Update) {
+        if (ew instanceof AbstractWrapper && ew instanceof Update) {
             Class<?> entityClass = ENTITY_CLASS_CACHE.get(msId);
             if (null == entityClass) {
                 try {
@@ -293,6 +294,8 @@ public class OptimisticLockerInnerInterceptor implements InnerInterceptor {
             return new Timestamp(System.currentTimeMillis());
         } else if (LocalDateTime.class.equals(clazz)) {
             return LocalDateTime.now();
+        } else if (Instant.class.equals(clazz)) {
+            return Instant.now();
         }
         //not supported type, return original val.
         return originalVersionVal;

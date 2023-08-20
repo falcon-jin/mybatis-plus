@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -37,7 +37,7 @@ public class Sequence {
     /**
      * 时间起始标记点，作为基准，一般取系统的最近时间（一旦确定不能变动）
      */
-    private final long twepoch = 1288834974657L;
+    private static final long twepoch = 1288834974657L;
     /**
      * 机器标识位数
      */
@@ -80,6 +80,13 @@ public class Sequence {
         this.inetAddress = inetAddress;
         this.datacenterId = getDatacenterId(maxDatacenterId);
         this.workerId = getMaxWorkerId(datacenterId, maxWorkerId);
+        initLog();
+    }
+
+    private void initLog() {
+        if (logger.isDebugEnabled()) {
+            logger.debug("Initialization Sequence datacenterId:" + this.datacenterId + " workerId:" + this.workerId);
+        }
     }
 
     /**
@@ -95,6 +102,7 @@ public class Sequence {
             String.format("datacenter Id can't be greater than %d or less than 0", maxDatacenterId));
         this.workerId = workerId;
         this.datacenterId = datacenterId;
+        initLog();
     }
 
     /**
@@ -174,7 +182,7 @@ public class Sequence {
                 timestamp = tilNextMillis(lastTimestamp);
             }
         } else {
-            // 不同毫秒内，序列号置为 1 - 3 随机数
+            // 不同毫秒内，序列号置为 1 - 2 随机数
             sequence = ThreadLocalRandom.current().nextLong(1, 3);
         }
 
@@ -199,4 +207,10 @@ public class Sequence {
         return SystemClock.now();
     }
 
+    /**
+     * 反解id的时间戳部分
+     */
+    public static long parseIdTimestamp(long id) {
+        return (id>>22)+twepoch;
+    }
 }

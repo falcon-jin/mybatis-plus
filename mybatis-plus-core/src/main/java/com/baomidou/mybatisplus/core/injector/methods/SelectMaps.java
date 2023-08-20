@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ import java.util.Map;
 public class SelectMaps extends AbstractMethod {
 
     public SelectMaps() {
-        super(SqlMethod.SELECT_MAPS.getMethod());
+        this(SqlMethod.SELECT_MAPS.getMethod());
     }
 
     /**
@@ -48,7 +48,7 @@ public class SelectMaps extends AbstractMethod {
         SqlMethod sqlMethod = SqlMethod.SELECT_MAPS;
         String sql = String.format(sqlMethod.getSql(), sqlFirst(), sqlSelectColumns(tableInfo, true), tableInfo.getTableName(),
             sqlWhereEntityWrapper(true, tableInfo),sqlOrderBy(tableInfo), sqlComment());
-        SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass);
-        return this.addSelectMappedStatementForOther(mapperClass, getMethod(sqlMethod), sqlSource, Map.class);
+        SqlSource sqlSource = super.createSqlSource(configuration, sql, modelClass);
+        return this.addSelectMappedStatementForOther(mapperClass, methodName, sqlSource, Map.class);
     }
 }

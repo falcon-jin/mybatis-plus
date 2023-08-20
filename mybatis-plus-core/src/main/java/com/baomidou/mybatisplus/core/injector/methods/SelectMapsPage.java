@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -27,12 +27,14 @@ import java.util.Map;
  * 查询满足条件所有数据（并翻页）
  *
  * @author hubin
+ * @deprecated 3.5.3.2 {@link  com.baomidou.mybatisplus.core.mapper.BaseMapper#selectMaps(com.baomidou.mybatisplus.core.metadata.IPage, com.baomidou.mybatisplus.core.conditions.Wrapper)}
  * @since 2018-04-06
  */
+@Deprecated
 public class SelectMapsPage extends AbstractMethod {
 
     public SelectMapsPage() {
-        super(SqlMethod.SELECT_MAPS_PAGE.getMethod());
+        this(SqlMethod.SELECT_MAPS_PAGE.getMethod());
     }
 
     /**
@@ -48,7 +50,7 @@ public class SelectMapsPage extends AbstractMethod {
         SqlMethod sqlMethod = SqlMethod.SELECT_MAPS_PAGE;
         String sql = String.format(sqlMethod.getSql(), sqlFirst(), sqlSelectColumns(tableInfo, true),
             tableInfo.getTableName(), sqlWhereEntityWrapper(true, tableInfo), sqlOrderBy(tableInfo), sqlComment());
-        SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass);
-        return this.addSelectMappedStatementForOther(mapperClass, getMethod(sqlMethod), sqlSource, Map.class);
+        SqlSource sqlSource = super.createSqlSource(configuration, sql, modelClass);
+        return this.addSelectMappedStatementForOther(mapperClass, methodName, sqlSource, Map.class);
     }
 }

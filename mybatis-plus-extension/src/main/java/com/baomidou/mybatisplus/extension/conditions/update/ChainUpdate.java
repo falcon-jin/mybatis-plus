@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,7 +42,7 @@ public interface ChainUpdate<T> extends ChainWrapper<T> {
      * @return 是否成功
      */
     default boolean update(T entity) {
-        return SqlHelper.retBool(getBaseMapper().update(entity, getWrapper()));
+        return execute(mapper -> SqlHelper.retBool(mapper.update(entity, getWrapper())));
     }
 
     /**
@@ -51,6 +51,6 @@ public interface ChainUpdate<T> extends ChainWrapper<T> {
      * @return 是否成功
      */
     default boolean remove() {
-        return SqlHelper.retBool(getBaseMapper().delete(getWrapper()));
+        return execute(mapper -> SqlHelper.retBool(mapper.delete(getWrapper())));
     }
 }

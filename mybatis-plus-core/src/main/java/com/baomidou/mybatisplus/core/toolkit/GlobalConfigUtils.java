@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,6 +17,7 @@ package com.baomidou.mybatisplus.core.toolkit;
 
 import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.core.config.GlobalConfig;
+import com.baomidou.mybatisplus.core.handlers.AnnotationHandler;
 import com.baomidou.mybatisplus.core.handlers.MetaObjectHandler;
 import com.baomidou.mybatisplus.core.incrementer.IKeyGenerator;
 import com.baomidou.mybatisplus.core.injector.ISqlInjector;
@@ -48,7 +49,9 @@ public class GlobalConfigUtils {
      * 获取当前的SqlSessionFactory
      *
      * @param clazz 实体类
+     * @deprecated 3.5.3.2 尽量少用,后期取消此方法获取实例
      */
+    @Deprecated
     public static SqlSessionFactory currentSessionFactory(Class<?> clazz) {
         Assert.notNull(clazz, "Class must not be null");
         TableInfo tableInfo = TableInfoHelper.getTableInfo(clazz);
@@ -106,6 +109,10 @@ public class GlobalConfigUtils {
 
     public static Optional<MetaObjectHandler> getMetaObjectHandler(Configuration configuration) {
         return Optional.ofNullable(getGlobalConfig(configuration).getMetaObjectHandler());
+    }
+
+    public static Optional<AnnotationHandler> getAnnotationHandler(Configuration configuration) {
+        return Optional.ofNullable(getGlobalConfig(configuration).getAnnotationHandler());
     }
 
     public static Class<?> getSuperMapperClass(Configuration configuration) {

@@ -15,10 +15,7 @@
  */
 package com.baomidou.mybatisplus.test;
 
-import com.baomidou.mybatisplus.annotation.FieldFill;
-import com.baomidou.mybatisplus.annotation.FieldStrategy;
-import com.baomidou.mybatisplus.annotation.TableField;
-import com.baomidou.mybatisplus.annotation.TableLogic;
+import com.baomidou.mybatisplus.annotation.*;
 import com.baomidou.mybatisplus.core.MybatisConfiguration;
 import com.baomidou.mybatisplus.core.metadata.TableInfo;
 import com.baomidou.mybatisplus.core.metadata.TableInfoHelper;
@@ -56,11 +53,12 @@ class EncryptTest {
         System.out.println("----------- AllSqlSet -----------");
         System.out.println(info.getAllSqlSet(true, "ew.entity."));
         System.out.println("----------- AllSqlWhere -----------");
-        System.out.println(info.getAllSqlWhere(true, true, "ew.entity."));
+        System.out.println(info.getAllSqlWhere(false, true, true, "ew.entity."));
     }
 
     @Data
     private static class Xx {
+        @TableId(type = IdType.AUTO)
         private Long id;
         @TableField(fill = FieldFill.INSERT)
         private String x1;
@@ -70,7 +68,7 @@ class EncryptTest {
         private String x3;
         @TableField(whereStrategy = FieldStrategy.NOT_EMPTY)
         private String x4;
-        @TableField(value = "xx5", updateStrategy = FieldStrategy.IGNORED, update = "%s+1")
+        @TableField(value = "xx5", updateStrategy = FieldStrategy.ALWAYS, update = "%s+1")
         private String x5;
         @TableLogic
         private Integer deleted;

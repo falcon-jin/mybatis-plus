@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,7 +30,7 @@ import org.apache.ibatis.mapping.SqlSource;
 public class SelectObjs extends AbstractMethod {
 
     public SelectObjs() {
-        super(SqlMethod.SELECT_OBJS.getMethod());
+        this(SqlMethod.SELECT_OBJS.getMethod());
     }
 
     /**
@@ -46,7 +46,7 @@ public class SelectObjs extends AbstractMethod {
         SqlMethod sqlMethod = SqlMethod.SELECT_OBJS;
         String sql = String.format(sqlMethod.getSql(), sqlFirst(), sqlSelectObjsColumns(tableInfo),
             tableInfo.getTableName(), sqlWhereEntityWrapper(true, tableInfo),sqlOrderBy(tableInfo), sqlComment());
-        SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, modelClass);
-        return this.addSelectMappedStatementForOther(mapperClass, getMethod(sqlMethod), sqlSource, Object.class);
+        SqlSource sqlSource = super.createSqlSource(configuration, sql, modelClass);
+        return this.addSelectMappedStatementForOther(mapperClass, methodName, sqlSource, Object.class);
     }
 }

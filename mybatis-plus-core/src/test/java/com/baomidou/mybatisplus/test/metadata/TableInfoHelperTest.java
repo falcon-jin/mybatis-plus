@@ -74,8 +74,11 @@ class TableInfoHelperTest {
 
     @Test
     void testIsExistTableId() {
-        Assertions.assertThat(TableInfoHelper.isExistTableId(Arrays.asList(ModelOne.class.getDeclaredFields()))).isTrue();
-        assertThat(TableInfoHelper.isExistTableId(Arrays.asList(ModelTwo.class.getDeclaredFields()))).isFalse();
+        MybatisConfiguration mybatisConfiguration = new MybatisConfiguration();
+        TableInfoHelper.initTableInfo(new MapperBuilderAssistant(mybatisConfiguration, ""), ModelOne.class);
+        TableInfoHelper.initTableInfo(new MapperBuilderAssistant(mybatisConfiguration, ""), ModelTwo.class);
+        Assertions.assertThat(TableInfoHelper.isExistTableId(ModelOne.class, Arrays.asList(ModelOne.class.getDeclaredFields()))).isTrue();
+        assertThat(TableInfoHelper.isExistTableId(ModelTwo.class, Arrays.asList(ModelTwo.class.getDeclaredFields()))).isFalse();
     }
 
     @Test
@@ -142,13 +145,16 @@ class TableInfoHelperTest {
     void testColumnFormat() {
         MybatisConfiguration configuration = new MybatisConfiguration();
         GlobalConfig config = GlobalConfigUtils.defaults();
-        config.getDbConfig().setColumnFormat("pxx_%s");
+        GlobalConfig.DbConfig dbConfig = config.getDbConfig();
+        dbConfig.setColumnFormat("pxx_%s");
+        dbConfig.setTableFormat("mp_%s");
         GlobalConfigUtils.setGlobalConfig(configuration, config);
         TableInfo tableInfo = TableInfoHelper.initTableInfo(new MapperBuilderAssistant(configuration, ""), Logic.class);
         List<TableFieldInfo> fieldList = tableInfo.getFieldList();
         fieldList.forEach(i -> {
             assertThat(i.getColumn()).startsWith("pxx_");
         });
+        assertThat(tableInfo.getTableName()).startsWith("mp_");
     }
 
     @Data

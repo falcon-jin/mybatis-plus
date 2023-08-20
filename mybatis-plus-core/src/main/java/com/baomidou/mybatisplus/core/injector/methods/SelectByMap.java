@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2022, baomidou (jobob@qq.com).
+ * Copyright (c) 2011-2023, baomidou (jobob@qq.com).
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,10 +29,11 @@ import java.util.Map;
  * @author hubin
  * @since 2018-04-06
  */
+@Deprecated
 public class SelectByMap extends AbstractMethod {
 
     public SelectByMap() {
-        super(SqlMethod.SELECT_BY_MAP.getMethod());
+        this(SqlMethod.SELECT_BY_MAP.getMethod());
     }
 
     /**
@@ -48,7 +49,7 @@ public class SelectByMap extends AbstractMethod {
         SqlMethod sqlMethod = SqlMethod.SELECT_BY_MAP;
         String sql = String.format(sqlMethod.getSql(), sqlSelectColumns(tableInfo, false),
             tableInfo.getTableName(), sqlWhereByMap(tableInfo));
-        SqlSource sqlSource = languageDriver.createSqlSource(configuration, sql, Map.class);
-        return this.addSelectMappedStatementForTable(mapperClass, getMethod(sqlMethod), sqlSource, tableInfo);
+        SqlSource sqlSource = super.createSqlSource(configuration, sql, Map.class);
+        return this.addSelectMappedStatementForTable(mapperClass, methodName, sqlSource, tableInfo);
     }
 }
